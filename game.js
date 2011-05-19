@@ -13,7 +13,7 @@ function initGame(){
 }
 
 function refreshGame(){
-
+	refreshCanvas();
 
 
 

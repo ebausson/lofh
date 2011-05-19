@@ -29,3 +29,10 @@ function initCanvas(game) {
 	renderer.setSize(window.innerWidth , window.innerHeight);
 	game.appendChild( renderer.domElement );
 }
+
+function refreshCanvas(){
+
+
+
+
+}
