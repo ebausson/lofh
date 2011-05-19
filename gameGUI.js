@@ -1,13 +1,11 @@
 
 
-function initGUI()
-{
+function initGUI(){
 
 
 }
 
-function gui()
-{
+function gui(){
 
 
 }
