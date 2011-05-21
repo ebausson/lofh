@@ -5,7 +5,7 @@ function initGUI(){
 
 }
 
-function gui(){
+function refreshGUI(){
 
 
 }

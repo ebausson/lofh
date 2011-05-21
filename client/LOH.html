@@ -12,14 +12,25 @@
 				overflow: hidden;
 			}
 		</style>
-		<script type="text/javascript" src="Three.js"></script>
-		<script type="text/javascript" src="initGame.js"></script>
-		<script type="text/javascript" src="initCanvas.js"></script>
+
+		
+		<script type="text/javascript" src="js/Three.js"></script>
+		<script type="text/javascript" src="js/game.js"></script>
+		<script type="text/javascript" src="js/gameVars.js"></script>
+		<script type="text/javascript" src="js/Canvas.js"></script>
+		<script type="text/javascript" src="js/gameGUI.js"></script>
+		<script type="text/javascript" src="js/scene.js"></script>
+		<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
+		<script type="text/javascript">
+		window.onload=function(){
+			GAME.refreshGame();
+			}
+		window.onmousedown=moveCam();
+		gameContainer.onmousemove = moveCam();
+		</script>
 	</head>
 	<body>
-		<script type="text/javascript">
-		window.onload=Game();
-		</script>
+		
 
 	</body>
 </html>
