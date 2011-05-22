@@ -1,16 +1,13 @@
 
-var CAMERA= CAMERA ||function() {
+var CAMERA=CAMERA||{};
 
 
 
-	
-	
-	this.onMouseMove = function ( event ) {
+function getCamera(){
+	CAMERA = new THREE.Camera( 60, window.innerWidth / window.innerHeight, 1, 10000);
 
-		this.mouseX = event.clientX - this.windowHalfX;
-		this.mouseY = event.clientY - this.windowHalfY;
-
-	};
-
+	getCamera=function(){
+		return CAMERA;	
+	}
+	return CAMERA;
 }
-

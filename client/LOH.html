@@ -15,18 +15,20 @@
 
 		
 		<script type="text/javascript" src="js/Three.js"></script>
-		<script type="text/javascript" src="js/game.js"></script>
-		<script type="text/javascript" src="js/gameVars.js"></script>
-		<script type="text/javascript" src="js/Canvas.js"></script>
-		<script type="text/javascript" src="js/gameGUI.js"></script>
-		<script type="text/javascript" src="js/scene.js"></script>
+		<script type="text/javascript" src="js/LOHGame.js"></script>
+		<script type="text/javascript" src="js/LOHVars.js"></script>
+		<script type="text/javascript" src="js/LOHCanvas.js"></script>
+		<script type="text/javascript" src="js/LOHGUI.js"></script>
+		<script type="text/javascript" src="js/LOHScene.js"></script>
+		<script type="text/javascript" src="js/LOHCamera.js"></script>
 		<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
 		<script type="text/javascript">
 		window.onload=function(){
+			getGame();
 			GAME.refreshGame();
 			}
 		window.onmousedown=moveCam();
-		gameContainer.onmousemove = moveCam();
+		GAME.onmousemove = moveCam();
 		</script>
 	</head>
 	<body>

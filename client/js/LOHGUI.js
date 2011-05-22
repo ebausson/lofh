@@ -1,4 +1,5 @@
 
+var GUI=GUI||{};
 
 function initGUI(){
 

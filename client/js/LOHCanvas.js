@@ -3,23 +3,35 @@
 **
 **
 */
-var scene, renderer;
-var CANVAS= CANVAS ||function() {
 
-	initCam();
+var CANVAS=CANVAS||{};
+
+
+function getCanvas() {
+
 	initScene();
 	initLight();
 	
-	renderer = new THREE.CanvasRenderer();
-	renderer.setSize(window.innerWidth , window.innerHeight);
+	CANVAS.renderer = new THREE.CanvasRenderer();
+	CANVAS.renderer.setSize(window.innerWidth , window.innerHeight);
 	fillScene();
-	return renderer.domElement;
+	
+	getCanvas=function()
+	{
+		return CANVAS;
+	}
+	getCanvas().renderer.domElement.onmousedown=function()
+	{
+		getCanvas().renderer.domElement.onmousemove=moveCam;
+	}
+	getCanvas().renderer.domElement.onmouseup=function()
+	{
+		getCanvas().renderer.domElement.onmousemove={};
+	}
+	return CANVAS;
 }
 
- function initCam(){
-	camera = new THREE.Camera( 60, window.innerWidth / window.innerHeight, 1, 10000);
-	camera.position.y=100;
-}
+
 
 function initLight() {
 	var ambientLight = new THREE.AmbientLight( Math.random() * 0x10 );
@@ -28,33 +40,31 @@ function initLight() {
 
 function moveCam(){
 
-var timer = new Date().getTime() * 0.0001;
-
-	camera.position.x = Math.cos( timer ) * 200;
-	camera.position.z = Math.sin( timer ) * 200;
+	getCamera().position.x = getCamera().position.x+1;
 
 }
-function refreshCanvas(){
+
+CANVAS.refreshCanvas=function(){
 	
-	animate();
-	render();
+	CANVAS.animate();
+	CANVAS.render();
 
 }
 
-function animate() {
+CANVAS.animate=function(){
 
-	render();
+	CANVAS.render();
 
 }
 
-function render() {
+CANVAS.render=function(){
 	
 	var timer = new Date().getTime() * 0.0001;
 
 	//camera.position.x = Math.cos( timer ) * 200;
-	camera.position.z = Math.sin( timer ) * 200;
+	getCamera().position.z = Math.sin( timer ) * 200;
 	
 
-	renderer.render( scene, camera );
+	getCanvas().renderer.render( scene, getCamera() );
 
 }
