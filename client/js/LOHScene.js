@@ -21,6 +21,12 @@ function Scene()
 	}
 	var ambientLight = new THREE.AmbientLight( Math.random() * 0x10 );
 	scene.addLight( ambientLight );
+	var directionalLight = new THREE.DirectionalLight( Math.random() * 0xffffff );
+	directionalLight.position.x = Math.random() - 0.5;
+	directionalLight.position.y = Math.random() - 0.5;
+	directionalLight.position.z = Math.random() - 0.5;
+	directionalLight.position.normalize();
+	scene.addLight( directionalLight );
 	this.fillScene=function()
 	{
 		target.overdraw = true;
