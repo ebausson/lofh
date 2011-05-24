@@ -4,67 +4,73 @@
 **
 */
 
-var CANVAS=CANVAS||{};
-
-
-function getCanvas() {
-
-	initScene();
-	initLight();
-	
-	CANVAS.renderer = new THREE.CanvasRenderer();
-	CANVAS.renderer.setSize(window.innerWidth , window.innerHeight);
-	fillScene();
-	
-	getCanvas=function()
+/**
+objet Canvas
+**/
+function Canvas() {
+	var renderer = new THREE.CanvasRenderer();
+	renderer.setSize(window.innerWidth*3/4 , window.innerHeight*3/4);
+	var canvas=renderer.domElement;
+	var scene=new Scene();
+	scene.fillScene();
+	canvas.onmousedown=function(event)
 	{
-		return CANVAS;
+		if ('which' in event) {
+			switch (event.which) {
+			case 1://right
+				scene.setPosMouse(event.clientX,event.clientY);
+				canvas.onmousemove=scene.moveCam;
+				break;
+			case 2://middle
+				//alert ("Middle button is pressed");
+				break;
+			case 3://left
+				scene.setPosMouse(event.clientX,event.clientY);
+				canvas.onmousemove=scene.moveCam;
+				break;
+			}
+		}
 	}
-	getCanvas().renderer.domElement.onmousedown=function()
+	canvas.onmouseup=function()
 	{
-		getCanvas().renderer.domElement.onmousemove=moveCam;
+		canvas.onmousemove={};
 	}
-	getCanvas().renderer.domElement.onmouseup=function()
+	canvas.onmouseout=function()
 	{
-		getCanvas().renderer.domElement.onmousemove={};
+		canvas.onmousemove={};
 	}
-	return CANVAS;
+	document.onkeypress=scene.moveTarget;
+	document.body.oncontextmenu=function()
+	{
+		return false;
+	}
+	this.getCanvas=function()
+	{
+		return canvas;
+	}
+	this.refreshCanvas=function()
+	{
+		animate();
+	}
+
+	var animate=function()
+	{
+	requestAnimationFrame(animate);
+		render();
+	}
+
+	var render=function()
+	{
+		//var timer = new Date().getTime() * 0.0001;
+		renderer.render( scene.getScene(), scene.getCamera() );
+	}
 }
 
 
 
-function initLight() {
-	var ambientLight = new THREE.AmbientLight( Math.random() * 0x10 );
-	scene.addLight( ambientLight );
-}
 
-function moveCam(){
 
-	getCamera().position.x = getCamera().position.x+1;
 
-}
 
-CANVAS.refreshCanvas=function(){
-	
-	CANVAS.animate();
-	CANVAS.render();
 
-}
 
-CANVAS.animate=function(){
-
-	CANVAS.render();
-
-}
-
-CANVAS.render=function(){
-	
-	var timer = new Date().getTime() * 0.0001;
-
-	//camera.position.x = Math.cos( timer ) * 200;
-	getCamera().position.z = Math.sin( timer ) * 200;
-	
-
-	getCanvas().renderer.render( scene, getCamera() );
-
-}
