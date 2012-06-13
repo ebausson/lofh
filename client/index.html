@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+	<head>
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			#info a, .button { color: #f00; font-weight: bold; text-decoration: underline; cursor: pointer }
+		</style>
+		<script type="text/javascript" src="js/socket.io.min.js"></script> 
+		<script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
+		<script type="text/javascript" src="js/Three.js"></script>
+		<script type="text/javascript" src="js/LOH.js"></script>
+		<script type="text/javascript" src="js/LOHthirdPerson.js"></script>
+		<script type="text/javascript" src="js/LOHGame.js"></script>
+		<script type="text/javascript" src="js/LOHCanvas.js"></script>
+		<script type="text/javascript" src="js/LOHWorld.js"></script>
+		<script type="text/javascript" src="js/LOHInput.js"></script>
+		<script type="text/javascript" src="js/Stats.js"></script>
+		<script type="text/javascript" src="js/LOHSocket.js"></script>
+		
+		
+		
+	</head>
+	<body>
+		<script type="text/javascript">
+		window.onload=function()
+		{
+			var game=new LOH.Game();
+		}
+		
+		</script>
+
+	</body>
+</html>

@@ -1,25 +1,76 @@
-function World()
+LOH.World=function(scene)
 {
-	var objets=new Array();
-	objets.push(new Carre());
-	var hexa0=new Hexagone();
-	objets.push(hexa0);
-	var perso=new Carre();
-
-
-	this.draw=function(context)
+	this.scene=scene;
+	var entities=new Array();//liste des modeles actuellement en memoire.
+	var shapes=new Array();
+	var target;
+	
+	this.initMonde=function()
 	{
-		perso.draw(context);
-		for(i=0;i<objets.length;i++)
-		{
-			objets[i].draw(context);
+		var ambientLight = new THREE.AmbientLight( Math.random() * 0x10 );
+		scene.add( ambientLight );
+
+		var directionalLight = new THREE.DirectionalLight( Math.random() * 0xffffff );
+		directionalLight.position.x = Math.random() - 0.5;
+		directionalLight.position.y = Math.random() - 0.5;
+		directionalLight.position.z = Math.random() - 0.5;
+		directionalLight.position.normalize();
+		scene.add( directionalLight );
+		this.initShapes();
+		this.addEntity("ground",2);
+	}
+	
+	this.setTarget=function(id){
+		target=id;
+	}
+	
+	this.getEntity=function(id){
+		if(id=="target"){
+			if(target)
+			{
+				return scene.getChildByName(target,false);
+			}else{
+				return 0;
+			}
+		}else{
+			return scene.getChildByName(id,false);
 		}
 	}
-	this.move=function(move_)
+	
+	this.sync=function(data){
+		for(ent in data){
+			if(!scene.getChildByName(data[ent].id,false)){
+				this.addEntity(data[ent].id,1);
+			}
+			var tmp=scene.getChildByName(data[ent].id,false);
+			tmp.position=data[ent].position;
+		}
+	}
+	
+	this.initShapes=function()
 	{
-		for(i=0;i<objets.length;i++)
+		shapes[1]=new THREE.CubeGeometry( 10, 10, 10);
+		shapes[2]=new THREE.PlaneGeometry( 1000, 1000, 100, 100);
+	}
+	
+	this.addEntity=function(name,shapeID,position)
+	{
+		mesh = new THREE.Mesh( getShape(shapeID) );
+		mesh.name=name;
+		entities[name]=mesh;
+		scene.add(mesh);
+	}
+
+	var getShape=function(shapeID)
+	{
+		if(shapes[shapeID])
 		{
-			objets[i].move(move_);
+			return shapes[shapeID];
+		}
+		else
+		{
+			return shapes[1];
 		}
 	}
 }
+
