@@ -14,7 +14,7 @@ LOH.thirdPerson=function(world,input)
 	{
 		
 		if (input.moveForward) {
-			target.position.x+=0.1;
+			target.position.x+=1;
 		}
 		
 		

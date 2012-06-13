@@ -10,14 +10,13 @@ LOH.WSocket=function(world)
 	socket.on('sync', function (data) {
 		world.sync(data);
 	});
+	
 	this.update=function()
 	{
 		if(world.getEntity("target"))
 		{
 			socket.emit('movement', world.getEntity("target").position);
 		}
-		
 	}
 	//--------------------------------
-
 }

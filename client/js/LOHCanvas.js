@@ -20,8 +20,6 @@ LOH.Canvas=function(stats)
 	world.initMonde();
 	var thirdperson;
 	
-	
-	
 	document.body.oncontextmenu=function()
 	{
 		return false;

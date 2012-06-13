@@ -128,7 +128,7 @@ function getParameters(url) {
 	return response;
 }
 //***************//
-//// SOCKET.IO ////
+//   SOCKET.IO   //
 //***************//
 
 // Socket io ecoute maintenant notre application !

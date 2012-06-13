@@ -39,36 +39,34 @@ LOH.World=function(scene)
 	
 	this.sync=function(data){
 		for(ent in data){
-			if(!scene.getChildByName(data[ent].id,false)){
-				this.addEntity(data[ent].id,1);
-			}
 			var tmp=scene.getChildByName(data[ent].id,false);
-			tmp.position=data[ent].position;
+			if(!tmp){
+				this.addEntity(data[ent].id,1);
+				scene.getChildByName(data[ent].id,false).position=data[ent].position;
+			}else{
+				if((tmp.name!=this.target)||(new THREE.Vector4().sub(tmp.position,data[ent].position).length()>2)){
+					tmp.position=data[ent].position;
+				}
+			}
 		}
 	}
 	
-	this.initShapes=function()
-	{
+	this.initShapes=function(){
 		shapes[1]=new THREE.CubeGeometry( 10, 10, 10);
 		shapes[2]=new THREE.PlaneGeometry( 1000, 1000, 100, 100);
 	}
 	
-	this.addEntity=function(name,shapeID,position)
-	{
+	this.addEntity=function(name,shapeID,position){
 		mesh = new THREE.Mesh( getShape(shapeID) );
 		mesh.name=name;
 		entities[name]=mesh;
 		scene.add(mesh);
 	}
 
-	var getShape=function(shapeID)
-	{
-		if(shapes[shapeID])
-		{
+	var getShape=function(shapeID){
+		if(shapes[shapeID]){
 			return shapes[shapeID];
-		}
-		else
-		{
+		}else{
 			return shapes[1];
 		}
 	}
