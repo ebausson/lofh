@@ -13,7 +13,7 @@ var DEBUG = true;
 
 var server = connect.createServer(
 	connect.logger("*** :status   :date - :url"),
-	connect.favicon(__dirname + '/static/favicon.ico'),
+	connect.favicon(__dirname + '/../client/favicon.ico'),
     connect.cookieParser(),
     connect.session({secret:'some secret String'})
 );
@@ -25,7 +25,8 @@ var server = connect.createServer(
 // ****************************
 
 // static file serving
-server.use("/static", connect.static(__dirname + '/static'));
+server.use("/static", connect.static(__dirname + '/../client'));
+
 
 
 // authentication request handling
@@ -83,7 +84,7 @@ server.listen(3000);
 // *************
 
 function getIndex(req, res) {
-	var filename = __dirname + "/index.html";
+	var filename = __dirname + "/../client/index.html";
 	
 	fs.readFile(filename, function(err, file) {
 		if(err) {
