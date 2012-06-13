@@ -5,14 +5,13 @@ LOH.thirdPerson=function(world,input)
 	camera.position.y=10;
 	camera.position.z=10;
 	world.scene.add(camera);
-	
+	var pos= new THREE.Vector4(camera.position.x,camera.position.y,camera.position.z,1);
 	target= world.getEntity("target");
 	
 	camera.lookAt(target.position);
 	
 	this.update=function(time)
 	{
-		var pos= new THREE.Vector4(camera.position.x-target.position.x,0,camera.position.z-target.position.z,1);
 		
 		if (input.moveForward) {
 			target.position.x+=0.1;

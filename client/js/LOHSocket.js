@@ -12,8 +12,6 @@ LOH.WSocket=function(world)
 	});
 	this.update=function()
 	{
-		//window.setTimeout( this.update, 1000/60  );
-		console.log("update");
 		if(world.getEntity("target"))
 		{
 			socket.emit('movement', world.getEntity("target").position);

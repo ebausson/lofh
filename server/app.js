@@ -1,7 +1,13 @@
 /* node modules */
-var connect = require("connect");				// connect middleware
+//var connect = require("connect");				// connect middleware
 var fs = require("fs");							// filesystem API
 var url = require("url");						// URL parsing API
+var io = require('socket.io');
+var express = require('express'),
+app = express.createServer();
+
+/* game modules */
+var game = require('./gameEngine.js');
 
 
 /* application modules */
@@ -11,13 +17,21 @@ var Handler = require('./handler.js');
 
 var DEBUG = true;
 
-var server = connect.createServer(
-	connect.logger("*** :status   :date - :url"),
-	connect.favicon(__dirname + '/../client/favicon.ico'),
-    connect.cookieParser(),
-    connect.session({secret:'some secret String'})
-);
+// var server = connect.createServer(
+	// connect.logger("*** :status   :date - :url"),
+	// connect.favicon(__dirname + '/../client/favicon.ico'),
+    // connect.cookieParser(),
+    // connect.session({secret:'some secret String'})
+// );
 
+
+	// app.use(express.logger());
+	// app.use(express.bodyParser());
+	// app.use(express.cookieParser('my secret here'));
+	// app.use(express.session('my secret here'));
+	app.use(app.router);
+	app.use(express.static('public'));
+	app.use(express.errorHandler());
 
 
 // ****************************
@@ -25,12 +39,12 @@ var server = connect.createServer(
 // ****************************
 
 // static file serving
-server.use("/static", connect.static(__dirname + '/../client'));
+app.use("/static", express.static(__dirname + '/../client'));
 
 
 
 // authentication request handling
-server.use("/auth", function(req, res) {
+app.use("/auth", function(req, res) {
 	var parameters = getParameters(req.url);
 	var success = false;
 	if (parameters.user && parameters.password) {
@@ -54,7 +68,7 @@ server.use("/auth", function(req, res) {
 });
 
 // other requests
-server.use("/request", function(req, res) {
+app.use("/request", function(req, res) {
 	var parameters = getParameters(req.url);
 	if (User.isAuth(req, res)) {
 		// if user is authentified
@@ -68,11 +82,11 @@ server.use("/request", function(req, res) {
 
 
 // "root" handling
-server.use("/", function (req, res) {
+app.use("/", function (req, res) {
 	getIndex(req, res);
 });
 
-server.listen(3000);
+app.listen(3000);
 
 
 
@@ -113,3 +127,29 @@ function getParameters(url) {
 	}
 	return response;
 }
+//***************//
+//// SOCKET.IO ////
+//***************//
+
+// Socket io ecoute maintenant notre application !
+io = io.listen(app); 
+io.set('log level', 1);
+// Quand une personne se connecte au serveur
+io.sockets.on('connection', function (socket) {
+	var clients=new game.Entity();
+	console.log(clients);
+	socket.emit('news', clients.id);
+	socket.on('my other event', function (data) {
+    console.log(data);
+  });
+  socket.on('movement', function (data) {
+    clients.position=data;
+  });
+});
+
+var update=function(){
+	io.sockets.emit('sync', game.entities);
+	setTimeout( update, 10 );
+	
+};
+update();

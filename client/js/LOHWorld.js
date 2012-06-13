@@ -3,7 +3,7 @@ LOH.World=function(scene)
 	this.scene=scene;
 	var entities=new Array();//liste des modeles actuellement en memoire.
 	var shapes=new Array();
-	var target;
+	this.target;
 	
 	this.initMonde=function()
 	{
@@ -21,14 +21,14 @@ LOH.World=function(scene)
 	}
 	
 	this.setTarget=function(id){
-		target=id;
+		this.target=id;
 	}
 	
 	this.getEntity=function(id){
 		if(id=="target"){
-			if(target)
+			if(typeof(this.target)!='undefined')
 			{
-				return scene.getChildByName(target,false);
+				return scene.getChildByName(this.target,false);
 			}else{
 				return 0;
 			}
