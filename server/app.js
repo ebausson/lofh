@@ -8,6 +8,7 @@ app = express.createServer();
 
 /* game modules */
 var game = require('./gameEngine.js');
+var DB = require('./DBacces.js');
 
 
 /* application modules */
@@ -130,7 +131,9 @@ function getParameters(url) {
 //***************//
 //   SOCKET.IO   //
 //***************//
-
+console.log(game.entities);
+DB.launchDB(game);
+console.log(game.entities);
 // Socket io ecoute maintenant notre application !
 io = io.listen(app); 
 io.set('log level', 1);
@@ -148,6 +151,7 @@ io.sockets.on('connection', function (socket) {
 });
 
 var update=function(){
+	DB.updateDB(game);
 	io.sockets.emit('sync', game.entities);
 	setTimeout( update, 10 );
 	

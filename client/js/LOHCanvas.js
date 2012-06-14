@@ -9,7 +9,6 @@ objet Canvas
 **/
 LOH.Canvas=function(stats)
 {
-	
 	var renderer = new THREE.WebGLRenderer({ clearColor: 0x000000, clearAlpha: 0.5 });
 	renderer.setSize(window.innerWidth , window.innerHeight);
 	var canvas=renderer.domElement;

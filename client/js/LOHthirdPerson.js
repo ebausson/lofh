@@ -1,6 +1,7 @@
 LOH.thirdPerson=function(world,input)
  {	
 	var camera=new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
+	var projector = new THREE.Projector();
 	camera.position.x=10;
 	camera.position.y=10;
 	camera.position.z=10;
@@ -11,11 +12,40 @@ LOH.thirdPerson=function(world,input)
 	camera.lookAt(target.position);
 	
 	this.update=function(time)
-	{
+	{	
+	
+		if(input.mouseLDown)
+		{
+			
+			var vector = new THREE.Vector3( ( input.mouseX / window.innerWidth ) * 2 - 1, - ( input.mouseY / window.innerHeight ) * 2 + 1 , 0.5 );
+			projector.unprojectVector( vector, camera );
+
+			var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
+
+			var intersects = ray.intersectObjects( world.scene.__objects );
+
+			if ( intersects.length > 0 ) {
+
+				intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+
+			}
+		}
 		
+
+	//---------------------------
 		if (input.moveForward) {
 			target.position.x+=1;
 		}
+		if (input.moveBackward) {
+			target.position.x-=1;
+		}
+		if (input.moveLeft) {
+			target.position.z+=1;
+		}
+		if (input.moveRight) {
+			target.position.z-=1;
+		}
+		
 		
 		
 		if (input.zoomCamera != 0 )

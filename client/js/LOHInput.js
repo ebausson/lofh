@@ -16,6 +16,8 @@ Input=function(domElement)
 	this.freeze = false;
 	this.zoomCamera=0;
 	this.mouseDragOn = false;
+	this.mouseRDown = false;
+	this.mouseLDown = false;
 	
 	this.mousewheel = function ( event ) {
 		event.preventDefault();
@@ -39,11 +41,11 @@ Input=function(domElement)
 		switch ( event.button ) {
 
 			case 0:
-				
+				this.mouseLDown=true;
 				break;
 			case 2: 
 				this.downX=this.mouseX;
-				this.mouseDragOn = true;
+				this.mouseRDown = true;
 				break;
 		}
 	};
@@ -55,13 +57,15 @@ Input=function(domElement)
 		switch ( event.button ) {
 
 			case 0: 
-				
+				this.mouseLDown = false;
 				break;
 			case 2: 
 				this.downX=0;
+				this.mouseRDown = false;
+				this.mouseDragOn = false;
 				break;
 		}
-		this.mouseDragOn = false;
+		
 	};
 	
 	this.onMouseMove = function ( event ) {
@@ -76,6 +80,9 @@ Input=function(domElement)
 			this.mouseX = event.pageX - this.domElement.offsetLeft ;
 			this.mouseY = event.pageY - this.domElement.offsetTop;
 
+		}
+		if(this.mouseRDown){
+			this.mouseDragOn = true;
 		}
 	};
 
