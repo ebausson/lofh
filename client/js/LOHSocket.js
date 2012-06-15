@@ -1,7 +1,7 @@
 LOH.WSocket=function(world)
 {
 	//--------------------------------
-	var socket = io.connect('http://localhost');
+	var socket = io.connect();
 	socket.on('news', function (data) {
 		console.log(data);
 		world.setTarget(data);

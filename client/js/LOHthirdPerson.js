@@ -6,7 +6,7 @@ LOH.thirdPerson=function(world,input)
 	camera.position.y=10;
 	camera.position.z=10;
 	world.scene.add(camera);
-	var pos= new THREE.Vector4(camera.position.x,camera.position.y,camera.position.z,1);
+	var pos= new THREE.Vector4(camera.position.x,0,camera.position.z,1);
 	target= world.getEntity("target");
 	
 	camera.lookAt(target.position);
@@ -33,17 +33,24 @@ LOH.thirdPerson=function(world,input)
 		
 
 	//---------------------------
+		
 		if (input.moveForward) {
-			target.position.x+=1;
+			target.position.addSelf(pos.clone().normalize().negate());
 		}
 		if (input.moveBackward) {
-			target.position.x-=1;
+			target.position.addSelf(pos.clone().normalize());
 		}
 		if (input.moveLeft) {
-			target.position.z+=1;
+			var mat=new THREE.Matrix4();
+			mat.rotateY(90*2*Math.PI/360);
+			var pos2=mat.crossVector(pos);
+			target.position.addSelf(pos2.normalize().negate());
 		}
 		if (input.moveRight) {
-			target.position.z-=1;
+			var mat=new THREE.Matrix4();
+			mat.rotateY(90*2*Math.PI/360);
+			var pos2=mat.crossVector(pos);
+			target.position.addSelf(pos2.normalize());
 		}
 		
 		

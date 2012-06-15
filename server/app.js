@@ -26,10 +26,10 @@ var DEBUG = true;
 // );
 
 
-	// app.use(express.logger());
-	// app.use(express.bodyParser());
-	// app.use(express.cookieParser('my secret here'));
-	// app.use(express.session('my secret here'));
+	app.use(express.logger());
+	app.use(express.bodyParser());
+	app.use(express.cookieParser());
+	app.use(express.session({ secret: "keyboard cat" }));
 	app.use(app.router);
 	app.use(express.static('public'));
 	app.use(express.errorHandler());
@@ -149,9 +149,14 @@ io.sockets.on('connection', function (socket) {
     clients.position=data;
   });
 });
-
-var update=function(){
+setTimeout(updateDB , 10000 );
+var updateDB=function(){
 	DB.updateDB(game);
+	setTimeout( updateDB, 10 );
+	
+};
+var update=function(){
+	
 	io.sockets.emit('sync', game.entities);
 	setTimeout( update, 10 );
 	

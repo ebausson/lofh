@@ -44,10 +44,10 @@ LOH.World=function(scene)
 			var tmp=scene.getChildByName(data[ent].id,false);
 			if(!tmp){
 				this.addEntity(data[ent].id,1);
-				scene.getChildByName(data[ent].id,false).position=data[ent].position;
+				scene.getChildByName(data[ent].id,false).position.copy(data[ent].position);
 			}else{
 				if((tmp.name!=this.target)||(new THREE.Vector4().sub(tmp.position,data[ent].position).length()>2)){
-					tmp.position=data[ent].position;
+					tmp.position.copy(data[ent].position);
 				}
 			}
 		}
