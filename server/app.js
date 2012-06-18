@@ -2,13 +2,13 @@ const path = require('path')
     , express = require('express')
     , app = module.exports = express.createServer()
     , port = process.env.PORT || 3000
-	, mongoStore =require('connect-mongodb')
+	,MemoryStore = express.session.MemoryStore
+	,sessionStore = new MemoryStore()
     ;
 	
  /* game modules */
 var game = require('./gameEngine.js');
 var DB = require('./DBacces.js');
-var mongo_Store =new mongoStore({db:DB.client})
 /** Configuration */
 app.configure(function() {
   this.set('views', path.join(__dirname, 'views'));
@@ -21,8 +21,10 @@ app.configure(function() {
   // Internal session data storage engine, this is the default engine embedded with connect.
   // Much more can be found as external modules (Redis, Mongo, Mysql, file...). look at "npm search connect session store"  
   this.use(express.session({ 
-  store: mongo_Store
-  , secret: 'topsecret' 
+    store: sessionStore
+	, cookie: {path: '/', httpOnly: true, maxAge:30 * 1000}
+	, secret: 'topsecret' 
+  
   }));
   // Allow parsing form data
   this.use(express.bodyParser());
@@ -70,17 +72,20 @@ app.post("/login", function (req, res) {
     res.render("login", options);
   } else {
     // Validate if username is free
-    sessions=req.sessionStore.getCollection()
+	 req.sessionStore.all(function (err, sessions) {
+      if (!err) {
         var found = false;
-		var err;
         for (var i=0; i<sessions.length; i++) {
+		if(sessionStore.get(sessions[i], function() {} )){
           var session = JSON.parse(sessions[i]);
           if (session.username == req.body.username) {
             err = "User name already used by someone else";
             found = true;
             break;
           }
+		  }
         }
+      }
       if (err) {
         options.error = ""+err;
         res.render("login", options);
@@ -88,7 +93,7 @@ app.post("/login", function (req, res) {
         req.session.username = req.body.username;
         res.redirect("/");
       }
-
+    });
   }
 });
 
@@ -111,10 +116,12 @@ sockets.authorization(function (handshakeData, callback) {
     // session with open sockets
     handshakeData.sessionID = sessionID;
     // On récupère la session utilisateur, et on en extrait son username
-    mongo_Store.get(sessionID, function (err, session) {
-	
-	
-      if (!err && session && session.username && 'undefined' == typeof connections[sessionID]) {
+    sessionStore.get(sessionID, function (err, session) {
+      if (!err && session && session.username) {
+		if('undefined' != typeof connections[sessionID]){
+				connections[sessionID].disconnect();
+				delete connections[sessionID];
+		}
         // On stocke ce username dans les données de l'authentification, pour réutilisation directe plus tard
         handshakeData.username = session.username;
         // OK, on accepte la connexion
@@ -145,8 +152,15 @@ sockets.on('connection', function (socket) { // New client
 		console.log('my other event:',data);
 	});
 	// When user leaves
+	socket.onDisconnect( function () {
+		console.log('ondisco')
+	});
 	socket.on('disconnect', function () {
-		delete connections[sessionID];
+		console.log('odisco')
+		sessionStore.destroy(sessionID, function(){
+			delete connections[sessionID];
+		});
+		
 	});
 	// New message from client = "write" event
 	socket.on('write', function (message) {
