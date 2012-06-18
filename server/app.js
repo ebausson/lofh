@@ -157,11 +157,6 @@ sockets.on('connection', function (socket) { // New client
 		DB.collection('entities').update({name:client.name},{$set:{position:data}});
 	});
 });
-// var updateDB=function(){
-	// DB.updateDB(game);
-	// setTimeout( updateDB, 1000 );
-	
-// };
 var update=function(){
 	DB.collection('entities').find({},function(err,data){
 		if(data)
@@ -171,7 +166,6 @@ var update=function(){
 	
 };
 update();
-// updateDB();
 
 
 /** Start server */
