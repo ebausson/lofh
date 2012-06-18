@@ -2,8 +2,6 @@ const path = require('path')
     , express = require('express')
     , app = module.exports = express.createServer()
     , port = process.env.PORT || 3000
-	,MemoryStore = express.session.MemoryStore
-	,sessionStore = new MemoryStore()
     ;
 	
  /* game modules */
@@ -20,11 +18,11 @@ app.configure(function() {
   // Session management
   // Internal session data storage engine, this is the default engine embedded with connect.
   // Much more can be found as external modules (Redis, Mongo, Mysql, file...). look at "npm search connect session store"  
+  this.sessionStore = new  express.session.MemoryStore({ reapInterval: 10*1000 })
   this.use(express.session({ 
-    store: sessionStore
-	, cookie: {path: '/', httpOnly: true, maxAge:30 * 1000}
-	, secret: 'topsecret' 
-  
+    store: this.sessionStore
+	, cookie: {path: '/', httpOnly: true, maxAge:10 * 1000}
+	, secret: 'topsecret'   
   }));
   // Allow parsing form data
   this.use(express.bodyParser());
@@ -48,6 +46,15 @@ function requireLogin (req, res, next) {
   }
 }
 
+function storeCleanUp () {
+	app.sessionStore.all(function (err, sessions) {
+		if (!err) {
+			for (var i=0; i<sessions.length; i++) {
+				app.sessionStore.get(sessions[i], function() {} );
+			}
+		}
+	});
+}
 /** Home page (requires authentication) */
 app.get('/', [requireLogin], function (req, res, next) {
   res.render('index', { "username": req.session.username });
@@ -65,7 +72,6 @@ app.post("/login", function (req, res) {
     options.error = "User name is required";
     res.render("login", options);
   } else if (req.body.username == req.session.username) {
-    // User has not changed username, accept it as-is
     res.redirect("/");
   } else if (!req.body.username.match(/^[a-zA-Z0-9\-_]{3,}$/)) {
     options.error = "User name must have at least 3 alphanumeric characters";
@@ -74,24 +80,21 @@ app.post("/login", function (req, res) {
     // Validate if username is free
 	 req.sessionStore.all(function (err, sessions) {
       if (!err) {
-        var found = false;
         for (var i=0; i<sessions.length; i++) {
-		if(sessionStore.get(sessions[i], function() {} )){
           var session = JSON.parse(sessions[i]);
           if (session.username == req.body.username) {
-            err = "User name already used by someone else";
-            found = true;
+				app.sessionStore.destroy(session, function(){
+					delete connections[session];
+				});
+				
             break;
           }
-		  }
         }
-      }
-      if (err) {
+		req.session.username = req.body.username;
+		res.redirect("/");
+      }else {
         options.error = ""+err;
         res.render("login", options);
-      } else {
-        req.session.username = req.body.username;
-        res.redirect("/");
       }
     });
   }
@@ -102,12 +105,15 @@ var connections = {};
 var io=require('socket.io').listen(app);
 io.set('log level', 1);
 var sockets = io.of('/game');
-const parseCookie = require('cookie').parse;
 sockets.authorization(function (handshakeData, callback) {
+	if(!handshakeData.headers.cookie){
+		callback( '=====>User not authenticated', false);
+		return;
+	}
   // Read cookies from handshake headers
-  var cookies = parseCookie(handshakeData.headers.cookie);
+  var cookies = require('cookie').parse(handshakeData.headers.cookie);
   // We're now able to retrieve session ID
-  var sessionID = cookies['connect.sid'];
+  var sessionID = cookies['connect.sid'].replace('%2B','+');//replace for some crazy reason
   // No session? Refuse connection
   if (!sessionID) {
     callback('No session', false);
@@ -116,12 +122,12 @@ sockets.authorization(function (handshakeData, callback) {
     // session with open sockets
     handshakeData.sessionID = sessionID;
     // On récupère la session utilisateur, et on en extrait son username
-    sessionStore.get(sessionID, function (err, session) {
+    app.sessionStore.get(sessionID, function (err, session) {
       if (!err && session && session.username) {
-		if('undefined' != typeof connections[sessionID]){
-				connections[sessionID].disconnect();
-				delete connections[sessionID];
-		}
+		// if('undefined' != typeof connections[sessionID]){
+				// connections[sessionID].disconnect();
+				// delete connections[sessionID];
+		// }
         // On stocke ce username dans les données de l'authentification, pour réutilisation directe plus tard
         handshakeData.username = session.username;
         // OK, on accepte la connexion
@@ -151,16 +157,8 @@ sockets.on('connection', function (socket) { // New client
 	socket.on('my other event', function (data) {
 		console.log('my other event:',data);
 	});
-	// When user leaves
-	socket.onDisconnect( function () {
-		console.log('ondisco')
-	});
 	socket.on('disconnect', function () {
-		console.log('odisco')
-		sessionStore.destroy(sessionID, function(){
 			delete connections[sessionID];
-		});
-		
 	});
 	// New message from client = "write" event
 	socket.on('write', function (message) {
@@ -175,12 +173,10 @@ var update=function(){
 	DB.collection('entities').find({},function(err,data){
 		if(data)
 			sockets.emit('sync',data);
-	});
-	setTimeout( update, 1000 );
-	
+	});	
 };
-update();
-
+setInterval(update,10);
+setInterval(storeCleanUp,10*1000);
 
 /** Start server */
 if (!module.parent) {
