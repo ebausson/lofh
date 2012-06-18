@@ -1,7 +1,7 @@
 LOH.WSocket=function(world)
 {
 	//--------------------------------
-	var socket = io.connect();
+	var socket = io.connect().of('/game');
 	socket.on('news', function (data) {
 		console.log(data);
 		world.setTarget(data);

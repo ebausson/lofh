@@ -41,10 +41,10 @@ LOH.World=function(scene)
 	
 	this.sync=function(data){
 		for(ent in data){
-			var tmp=scene.getChildByName(data[ent].id,false);
+			var tmp=scene.getChildByName(data[ent].name,false);
 			if(!tmp){
-				this.addEntity(data[ent].id,1);
-				scene.getChildByName(data[ent].id,false).position.copy(data[ent].position);
+				this.addEntity(data[ent].name,1);
+				scene.getChildByName(data[ent].name,false).position.copy(data[ent].position);
 			}else{
 				if((tmp.name!=this.target)||(new THREE.Vector4().sub(tmp.position,data[ent].position).length()>2)){
 					tmp.position.copy(data[ent].position);

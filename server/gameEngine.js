@@ -1,10 +1,6 @@
-exports.entities=new Array();
-var entitiesCounter=0;
-exports.Entity=function(){
-	this.id = entitiesCounter;
+exports.Entity=function(name){
 	this.position= new Vector4();
-	entitiesCounter++;
-	exports.entities[this.id]=this;
+	this.name= name;
 }
 
 Vector4 = function ( x, y, z, w ) {
