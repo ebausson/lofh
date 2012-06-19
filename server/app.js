@@ -80,18 +80,26 @@ app.post("/login", function (req, res) {
     // Validate if username is free
 	 req.sessionStore.all(function (err, sessions) {
       if (!err) {
-        for (var i=0; i<sessions.length; i++) {
-          var session = JSON.parse(sessions[i]);
-          if (session.username == req.body.username) {
-				app.sessionStore.destroy(session, function(){
-					delete connections[session];
-				});
-				
-            break;
-          }
-        }
-		req.session.username = req.body.username;
-		res.redirect("/");
+        
+		DB.collection('accounts').findOne({name:req.body.username},function(err,account){
+			if(!account){
+				DB.collection('accounts').insert({name:req.body.username})
+			}else{
+				for (var i=0; i<sessions.length; i++) {
+				  var session = JSON.parse(sessions[i]);
+				  if (session.username == req.body.username) {
+						app.sessionStore.destroy(session, function(){
+							connections[account._id].disconnect();
+							delete connections[account._id];
+						});
+						
+					break;
+				  }
+				}
+			}
+			req.session.username = req.body.username;
+			res.redirect("/");
+		})
       }else {
         options.error = ""+err;
         res.render("login", options);
@@ -111,9 +119,9 @@ sockets.authorization(function (handshakeData, callback) {
 		return;
 	}
   // Read cookies from handshake headers
-  var cookies = require('cookie').parse(handshakeData.headers.cookie);
+  var cookies = require('cookie').parse(handshakeData.headers.cookie.replace('%2B','+'));
   // We're now able to retrieve session ID
-  var sessionID = cookies['connect.sid'].replace('%2B','+');//replace for some crazy reason
+  var sessionID = cookies['connect.sid'];//replace for some crazy reason
   // No session? Refuse connection
   if (!sessionID) {
     callback('No session', false);
@@ -124,10 +132,6 @@ sockets.authorization(function (handshakeData, callback) {
     // On récupère la session utilisateur, et on en extrait son username
     app.sessionStore.get(sessionID, function (err, session) {
       if (!err && session && session.username) {
-		// if('undefined' != typeof connections[sessionID]){
-				// connections[sessionID].disconnect();
-				// delete connections[sessionID];
-		// }
         // On stocke ce username dans les données de l'authentification, pour réutilisation directe plus tard
         handshakeData.username = session.username;
         // OK, on accepte la connexion
@@ -146,28 +150,40 @@ sockets.on('connection', function (socket) { // New client
 	// this is required if we want to access this data when user leaves, as handshake is
 	// not available in "disconnect" event.
 	var username = socket.handshake.username; // Same here, to allow event "bye" with username
-	connections[sessionID] = socket;
-	
-	DB.collection('entities').findOne({name:username},function(err,entity){
-		client=entity||new game.Entity(username);
-		DB.collection('entities').insert(client);
-		socket.emit('news', client.name);
+	DB.collection('accounts').findOne({name:username},function(err,account){
+		connections[account._id] = socket;
+		entityID=account.entityID
+		DB.collection('entities').findOne({_id:entityID},function(err,entity){
+			if(!entity){
+				entity=new game.Entity(username);
+				DB.collection('entities').insert(entity);
+				DB.collection('entities').findOne({name:username},function(err,entity){
+					DB.collection('account').update({_id:account._id},{$set:{entityID:entity._id}},function(err,entity){});
+				});
+			}
+			client.charID=entity._id;
+				socket.emit('news', entity.name);
+			
+		});
+		
+		socket.on('my other event', function (data) {
+			console.log('my other event:',data);
+		});
+		socket.on('disconnect', function () {
+				delete connections[sessionID];
+		});
+		// New message from client = "write" event
+		socket.on('write', function (message) {
+			sockets.emit('message', username, message, Date.now());
+		});
+		//-------------------------------
+		socket.on('movement', function (data) {
+			DB.collection('entities').update({_id:client.charID},{$set:{position:data}});
+		});
 	});
 	
-	socket.on('my other event', function (data) {
-		console.log('my other event:',data);
-	});
-	socket.on('disconnect', function () {
-			delete connections[sessionID];
-	});
-	// New message from client = "write" event
-	socket.on('write', function (message) {
-		sockets.emit('message', username, message, Date.now());
-	});
-	//-------------------------------
-	socket.on('movement', function (data) {
-		DB.collection('entities').update({name:client.name},{$set:{position:data}});
-	});
+	
+	
 });
 var update=function(){
 	DB.collection('entities').find({},function(err,data){
