@@ -1,172 +1,123 @@
-exports.Entity=function(name){
-	this.position= new Vector4();
+var THREE=require('./three.js');
+exports.gameEntities=gameEntities={};
+var activeEntities={};
+
+Entity=function(name,position){
+	this.position= position||new THREE.Vector3();
 	this.name= name;
+	this.materials= [ "lambert_red" ];
+	this.rotation= new THREE.Vector3();
+	this.scale= new THREE.Vector3(1,1,1);
+	this.geometry="cube"
 }
 
-Vector4 = function ( x, y, z, w ) {
-
-	this.x = x || 0;
-	this.y = y || 0;
-	this.z = z || 0;
-	this.w = ( w !== undefined ) ? w : 1;
-
-};
-
-Vector4.prototype = {
-
-	constructor: Vector4,
-
-	set: function ( x, y, z, w ) {
-
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.w = w;
-
-		return this;
-
-	},
-
-	copy: function ( v ) {
-
-		this.x = v.x;
-		this.y = v.y;
-		this.z = v.z;
-		this.w = ( v.w !== undefined ) ? v.w : 1;
-
-		return this;
-
-	},
-
-	add: function ( a, b ) {
-
-		this.x = a.x + b.x;
-		this.y = a.y + b.y;
-		this.z = a.z + b.z;
-		this.w = a.w + b.w;
-
-		return this;
-
-	},
-
-	addSelf: function ( v ) {
-
-		this.x += v.x;
-		this.y += v.y;
-		this.z += v.z;
-		this.w += v.w;
-
-		return this;
-
-	},
-
-	sub: function ( a, b ) {
-
-		this.x = a.x - b.x;
-		this.y = a.y - b.y;
-		this.z = a.z - b.z;
-		this.w = a.w - b.w;
-
-		return this;
-
-	},
-
-	subSelf: function ( v ) {
-
-		this.x -= v.x;
-		this.y -= v.y;
-		this.z -= v.z;
-		this.w -= v.w;
-
-		return this;
-
-	},
-
-	multiplyScalar: function ( s ) {
-
-		this.x *= s;
-		this.y *= s;
-		this.z *= s;
-		this.w *= s;
-
-		return this;
-
-	},
-
-	divideScalar: function ( s ) {
-
-		if ( s ) {
-
-			this.x /= s;
-			this.y /= s;
-			this.z /= s;
-			this.w /= s;
-
-		} else {
-
-			this.x = 0;
-			this.y = 0;
-			this.z = 0;
-			this.w = 1;
-
-		}
-
-		return this;
-
-	},
-
-
-	negate: function() {
-
-		return this.multiplyScalar( -1 );
-
-	},
-
-	dot: function ( v ) {
-
-		return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
-
-	},
-
-	lengthSq: function () {
-
-		return this.dot( this );
-
-	},
-
-	length: function () {
-
-		return Math.sqrt( this.lengthSq() );
-
-	},
-
-	normalize: function () {
-
-		return this.divideScalar( this.length() );
-
-	},
-
-	setLength: function ( l ) {
-
-		return this.normalize().multiplyScalar( l );
-
-	},
-
-	lerpSelf: function ( v, alpha ) {
-
-		this.x += ( v.x - this.x ) * alpha;
-		this.y += ( v.y - this.y ) * alpha;
-		this.z += ( v.z - this.z ) * alpha;
-		this.w += ( v.w - this.w ) * alpha;
-
-		return this;
-
-	},
-
-	clone: function () {
-
-		return new Vector4( this.x, this.y, this.z, this.w );
-
+Mobile=function(name,position){
+	Entity.call(this,name,position);
+	this.speed=0.01
+	this.rotationspeed=0.001;
+	this.move=new THREE.Vector4();
+	this.moveOrient=new THREE.Vector4(1,0,0,0);
+	this.forward=false;
+	this.backward=false;
+	this.left=false;
+	this.right=false;
+}
+
+exports.Character=Character=function(name,position){
+	Mobile.call(this,name,position)
+}
+
+exports.CopyEntity=function(data){
+	var ent=new Character();
+	ent._id=data._id;
+	ent.position= new THREE.Vector3().copy(data.position);
+	ent.name= data.name;
+	return ent;
+}
+//**************************************************
+EntitySerializer=function(ent){
+	return{
+		"geometry"  : ent.geometry
+		,"materials": ent.materials
+		,"position" : [ ent.position.x, ent.position.y, ent.position.z ]
+		,"rotation" : [ ent.rotation.x, ent.rotation.y, ent.rotation.z ]
+		,"scale"	: [ ent.scale.x, ent.scale.y, ent.scale.z ]
+		,"visible"  : true
+	}
+}
+exports.viewSerializer=function(view){
+	var tab={}
+	for(ent in view){
+		tab[ent]=EntitySerializer(view[ent]);
+	}
+	return tab;
+}
+//**************************************************
+exports.gameRules=gameRules=new Array();
+gameRules['move']=function(ent,data,timestamp){
+	ent.rotation.copy(data.rotation);
+	ent.forward=data.forward;
+	ent.backward=data.backward;
+	ent.left=data.left;
+	ent.right=data.right;
+	ent.rotationmove=data.rotationmove;
+	var move=new THREE.Vector4();
+	if (ent.left){
+		move.x+=1
+	}
+	if (ent.right){
+		move.x+=-1
+	}
+	if (ent.forward){
+		move.z+=1;
+	}
+	if (ent.backward){
+		move.z+=-1;
 	}
 
-};
+	move.w=0;
+	
+	var now = new Date().getTime(),
+	dt = now - (timestamp || now);
+	if(ent.forward||ent.backward||ent.left||ent.right||ent.rotationmove){
+		activeEntities[ent._id]={};
+		var mat=new THREE.Matrix4().setRotationFromEuler(ent.rotation,'XYZ');
+		mat.rotateY(ent.rotationmove*dt*ent.rotationspeed);
+		ent.rotation.getRotationFromMatrix( mat );
+		var tmp_move=mat.crossVector(move);
+		tmp_move.w=0;
+		ent.position.addSelf(tmp_move.normalize().multiplyScalar(dt*ent.speed));
+	}else{
+		var mat=new THREE.Matrix4().setRotationFromEuler(ent.rotation,'XYZ');
+		mat.rotateY(ent.rotationmove*-dt*ent.rotationspeed);
+		ent.rotation.getRotationFromMatrix( mat );
+		tmp_move=mat.crossVector(ent.move);
+		tmp_move.w=0;
+		ent.position.addSelf(tmp_move.normalize().multiplyScalar(-dt*ent.speed));
+		delete activeEntities[ent._id];
+	}
+	
+	ent.move=move.normalize();
+}
+
+setInterval(applyRules,10)
+var time;
+function applyRules(){
+	var now = new Date().getTime(),
+	dt = now - (time || now);
+	time = now;
+	for(activ in activeEntities){
+		var ent=gameEntities[activ];
+
+		var mat=new THREE.Matrix4().setRotationFromEuler(ent.rotation,'XYZ');
+		mat.rotateY(ent.rotationmove*dt*ent.rotationspeed);
+		ent.rotation.getRotationFromMatrix( mat );
+		tmp_move=mat.crossVector(ent.move);
+		tmp_move.w=0;
+		tmp_move;
+
+		ent.position.addSelf(tmp_move.normalize().multiplyScalar(dt*ent.speed));			
+		console.log('------------------')
+		console.log(ent.position)
+	}
+}

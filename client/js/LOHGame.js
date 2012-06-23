@@ -1,17 +1,23 @@
 LOH.Game=function(){
-	var gameContainer=document.createElement('div');
-	document.body.appendChild( gameContainer );
-	var  stats;
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.top = '0px';
-	stats.domElement.style.zIndex = 100;
-	gameContainer.appendChild( stats.domElement );
-	var view=new LOH.Canvas(stats);
-	gameContainer.appendChild(view.getCanvas());
-	var refresh=function()
-	{
-		 view.refreshCanvas();
-	}
-	refresh();
+	var dispatch={};
+	var webGlContext=new LOH.WebGLBased({width:window.innerWidth,height:window.innerHeight})
+	document.body.appendChild(webGlContext.domElement);
+	dispatch['selectScreen']=function(data){
+		var GUI=new LOH.SelectScreenView(dispatch,webGlContext,data);
+		delete dispatch['selectScreen']
+		dispatch['GameScreen']=function(data){
+			GUI.stop();
+			GUI=new LOH.GameView(dispatch,webGlContext,data);
+			delete dispatch['GameScreen']
+		};
+	};
+	new LOH.WSocket(dispatch);
 }
+bind=function( scope, fn ) {
+	return function () {
+
+		fn.apply( scope, arguments );
+
+	};
+
+};

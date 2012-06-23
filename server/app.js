@@ -2,11 +2,12 @@ const path = require('path')
     , express = require('express')
     , app = module.exports = express.createServer()
     , port = process.env.PORT || 3000
-    ;
-	
+	, ObjectId = require('bson').ObjectID
  /* game modules */
-var game = require('./gameEngine.js');
-var DB = require('./DBacces.js');
+	, game = require('./gameEngine.js')
+	, DB = require('./DBacces.js')
+	, DEFAULT = require('./default.js')
+	;
 /** Configuration */
 app.configure(function() {
   this.set('views', path.join(__dirname, 'views'));
@@ -18,18 +19,20 @@ app.configure(function() {
   // Session management
   // Internal session data storage engine, this is the default engine embedded with connect.
   // Much more can be found as external modules (Redis, Mongo, Mysql, file...). look at "npm search connect session store"  
-  this.sessionStore = new  express.session.MemoryStore({ reapInterval: 10*1000 })
+  this.sessionStore = new  express.session.MemoryStore({ reapInterval: 60*60*1000 })
   this.use(express.session({ 
     store: this.sessionStore
-	, cookie: {path: '/', httpOnly: true, maxAge:10 * 1000}
+	, cookie: {path: '/', httpOnly: true, maxAge:60*60*1000}
 	, secret: 'topsecret'   
   }));
   // Allow parsing form data
   this.use(express.bodyParser());
 });
+
 app.configure('development', function(){
   this.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
+
 app.configure('production', function(){
   this.use(express.errorHandler());
 });
@@ -37,7 +40,7 @@ app.configure('production', function(){
 /** Routes */
 /** Middleware for limited access */
 function requireLogin (req, res, next) {
-  if (req.session.username) {
+  if (req.session._id) {
     // User is authenticated, let him in
     next();
   } else {
@@ -83,7 +86,9 @@ app.post("/login", function (req, res) {
         
 		DB.collection('accounts').findOne({name:req.body.username},function(err,account){
 			if(!account){
-				DB.collection('accounts').insert({name:req.body.username})
+				account={name:req.body.username};
+				DB.collection('accounts').insert(account);
+				console.log('new account',account)
 			}else{
 				for (var i=0; i<sessions.length; i++) {
 				  var session = JSON.parse(sessions[i]);
@@ -92,12 +97,11 @@ app.post("/login", function (req, res) {
 							connections[account._id].disconnect();
 							delete connections[account._id];
 						});
-						
 					break;
 				  }
 				}
 			}
-			req.session.username = req.body.username;
+			req.session._id=account._id;
 			res.redirect("/");
 		})
       }else {
@@ -119,21 +123,18 @@ sockets.authorization(function (handshakeData, callback) {
 		return;
 	}
   // Read cookies from handshake headers
-  var cookies = require('cookie').parse(handshakeData.headers.cookie.replace('%2B','+'));
+  var cookies = require('cookie').parse(handshakeData.headers.cookie.replace(/%2B/g,'+'));
   // We're now able to retrieve session ID
   var sessionID = cookies['connect.sid'];//replace for some crazy reason
   // No session? Refuse connection
   if (!sessionID) {
     callback('No session', false);
   } else {
-    // Store session ID in handshake data, we'll use it later to associate
-    // session with open sockets
-    handshakeData.sessionID = sessionID;
-    // On récupère la session utilisateur, et on en extrait son username
+    // On récupère la session utilisateur, et on en extrait son _id
     app.sessionStore.get(sessionID, function (err, session) {
-      if (!err && session && session.username) {
-        // On stocke ce username dans les données de l'authentification, pour réutilisation directe plus tard
-        handshakeData.username = session.username;
+      if (!err && session && session._id) {
+        // On stocke ce _id dans les données de l'authentification, pour réutilisation directe plus tard
+			 handshakeData._id =session._id;
         // OK, on accepte la connexion
         callback(null, true);
       } else {
@@ -145,53 +146,59 @@ sockets.authorization(function (handshakeData, callback) {
 });
 // Active sockets by session
 sockets.on('connection', function (socket) { // New client
-	var sessionID = socket.handshake.sessionID; // Store session ID from handshake
-	var client;
+	
 	// this is required if we want to access this data when user leaves, as handshake is
 	// not available in "disconnect" event.
-	var username = socket.handshake.username; // Same here, to allow event "bye" with username
-	DB.collection('accounts').findOne({name:username},function(err,account){
-		connections[account._id] = socket;
-		entityID=account.entityID
-		DB.collection('entities').findOne({_id:entityID},function(err,entity){
-			if(!entity){
-				entity=new game.Entity(username);
-				DB.collection('entities').insert(entity);
-				DB.collection('entities').findOne({name:username},function(err,entity){
-					DB.collection('account').update({_id:account._id},{$set:{entityID:entity._id}},function(err,entity){});
-				});
+	DB.collection('accounts').findOne({_id:ObjectId(socket.handshake._id)},function(err,account){
+		var client;
+		if (!err && account){
+			connections[account._id] = socket;
+			if(!account.entityID){
+				client=new game.Character(account.name);
+				DB.collection('entities').insert(client);
+				account.entityID=client._id;
+				DB.collection('accounts').save(account,function(err,entity){});
+				game.gameEntities[client._id]=client;
+			}else{
+				client=game.gameEntities[account.entityID];
+				//send message ready for character customization
+				socket.emit('SelectScreen', DEFAULT.defaultScene());
 			}
-			client.charID=entity._id;
-				socket.emit('news', entity.name);
-			
-		});
-		
-		socket.on('my other event', function (data) {
-			console.log('my other event:',data);
-		});
-		socket.on('disconnect', function () {
-				delete connections[sessionID];
-		});
-		// New message from client = "write" event
-		socket.on('write', function (message) {
-			sockets.emit('message', username, message, Date.now());
-		});
-		//-------------------------------
-		socket.on('movement', function (data) {
-			DB.collection('entities').update({_id:client.charID},{$set:{position:data}});
-		});
+			socket.on('play', function (data) {
+				custom=DEFAULT.defaultScene();
+				custom.objects=game.viewSerializer(game.gameEntities);
+				socket.emit('ready',{"id":client._id,"ressource":custom});
+				socket.on('event', function (data) {
+					game.gameRules[data['func']](game.gameEntities[client._id],data['data'],data['timestamp']);
+				});
+			});
+			socket.on('disconnect', function () {
+					delete connections[account._id];
+			});
+			// New message from client = "write" event
+			socket.on('write', function (message) {
+				sockets.emit('message', account.username, message, Date.now());
+			});
+			//-------------------------------
+		}else{
+			console.log(err)
+		}
 	});
-	
-	
-	
 });
-var update=function(){
+var loadDB=function(){
 	DB.collection('entities').find({},function(err,data){
-		if(data)
-			sockets.emit('sync',data);
-	});	
+		for(i=0; i<data.length ; i++){
+			game.gameEntities[data[i]._id]=game.CopyEntity(data[i]);
+		}
+	});
+}
+var update=function(){
+
+			sockets.emit('sync',game.gameEntities);
+
 };
-setInterval(update,10);
+loadDB();
+setInterval(update,100);
 setInterval(storeCleanUp,10*1000);
 
 /** Start server */
