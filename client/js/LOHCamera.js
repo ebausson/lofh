@@ -39,8 +39,9 @@ LOH.thirdPerson=function(dispatch,scene,input,targetID){
 	dispatch['getrotation']=function(){
 			return target.rotation;
 	}
-	
+	mouseLDown=false;
 	this.update=function(delta){
+		
 		if (input.mouseDragOn){
 			var mat=new THREE.Matrix4();
 			mat.rotateY((input.downX - input.mouseX)*2*Math.PI/360);
@@ -48,17 +49,26 @@ LOH.thirdPerson=function(dispatch,scene,input,targetID){
 			input.downX = input.mouseX;	
 		}
 		if(input.mouseLDown){
-			
-			var vector = new THREE.Vector3( ( input.mouseX / window.innerWidth ) * 2 - 1, - ( input.mouseY / window.innerHeight ) * 2 + 1 , 0.5 );
-			projector.unprojectVector( vector, camera );
+			if(!mouseLDown){
+				mouseLDown=true;
+				var vector = new THREE.Vector3( ( input.mouseX / window.innerWidth ) * 2 - 1, - ( input.mouseY / window.innerHeight ) * 2 + 1 , 0.5 );
+				projector.unprojectVector( vector, camera );
 
-			var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
+				var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
 
-			var intersects = ray.intersectObjects( scene.__objects );
+				var intersects = ray.intersectObjects( scene.__objects );
 
-			if ( intersects.length > 0 ) {
-				intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
+				if ( intersects.length > 0 ) {
+					dispatch['event']({
+						"func":"target"
+						,"data":{
+							"target":intersects[ 0 ].name
+						}
+					})
+				}
 			}
+		}else{
+			mouseLDown=false;
 		}
 		
 		var move=new THREE.Vector4();

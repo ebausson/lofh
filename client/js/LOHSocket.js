@@ -9,7 +9,6 @@ LOH.WSocket=function(dispatch)
 			//----------------------
 			dispatch['event']=function(data){
 					data.timestamp=new Date().getTime();
-					console.log('SPAM',data)
 					socket.emit('event', data);
 			};
 			//----------------------

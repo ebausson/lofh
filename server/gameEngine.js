@@ -54,6 +54,9 @@ exports.viewSerializer=function(view){
 }
 //**************************************************
 exports.gameRules=gameRules=new Array();
+gameRules['target']=function(ent,data,timestamp){
+	ent.target=data.target;
+}
 gameRules['move']=function(ent,data,timestamp){
 	ent.rotation.copy(data.rotation);
 	ent.forward=data.forward;
@@ -114,10 +117,7 @@ function applyRules(){
 		ent.rotation.getRotationFromMatrix( mat );
 		tmp_move=mat.crossVector(ent.move);
 		tmp_move.w=0;
-		tmp_move;
-
 		ent.position.addSelf(tmp_move.normalize().multiplyScalar(dt*ent.speed));			
-		console.log('------------------')
-		console.log(ent.position)
+
 	}
 }

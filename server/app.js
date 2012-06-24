@@ -19,10 +19,10 @@ app.configure(function() {
   // Session management
   // Internal session data storage engine, this is the default engine embedded with connect.
   // Much more can be found as external modules (Redis, Mongo, Mysql, file...). look at "npm search connect session store"  
-  this.sessionStore = new  express.session.MemoryStore({ reapInterval: 60*60*1000 })
+  this.sessionStore = new  express.session.MemoryStore({ reapInterval: 10*1000 })
   this.use(express.session({ 
     store: this.sessionStore
-	, cookie: {path: '/', httpOnly: true, maxAge:60*60*1000}
+	, cookie: {path: '/', httpOnly: true, maxAge:10*1000}
 	, secret: 'topsecret'   
   }));
   // Allow parsing form data
@@ -169,7 +169,9 @@ sockets.on('connection', function (socket) { // New client
 				custom.objects=game.viewSerializer(game.gameEntities);
 				socket.emit('ready',{"id":client._id,"ressource":custom});
 				socket.on('event', function (data) {
-					game.gameRules[data['func']](game.gameEntities[client._id],data['data'],data['timestamp']);
+					try{
+						game.gameRules[data['func']](game.gameEntities[client._id],data['data'],data['timestamp']);
+						}catch(err){console.log(err)}
 				});
 			});
 			socket.on('disconnect', function () {
