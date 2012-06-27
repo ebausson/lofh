@@ -5,7 +5,8 @@ LOH.WebGLBased=function(resolution){
 	this.domElement.width=resolution.width;
 	this.domElement.height=resolution.height;
 	
-	this.renderer = new THREE.WebGLRenderer({ clearColor: 0x000000, clearAlpha: 0.5 });
+	this.renderer = new THREE.WebGLRenderer();
+	this.renderer.sortObjects = false;
 	this.renderer.setSize(this.domElement.width , this.domElement.height);
 	this.domElement.appendChild( this.renderer.domElement );
 	
@@ -24,7 +25,7 @@ LOH.WebGLBased=function(resolution){
 	}
 }
 
-LOH.SelectScreenGUI=function(dispatch){
+LOH.SelectScreenGUI=function(){
 	
 	this.domElement=document.createElement('div');
 	
@@ -38,6 +39,7 @@ LOH.SelectScreenGUI=function(dispatch){
 	nameDiv.appendChild(nameText);
 	
 	var nameField=document.createElement('input');
+	nameField.value="NAME";
 	nameField.type='text';
 	nameField.style.top = '10px';
 	nameField.style.right = '100px';
@@ -55,8 +57,11 @@ LOH.SelectScreenGUI=function(dispatch){
 	boutonPlay.style.zIndex = 100;
 	this.domElement.appendChild(boutonPlay);
 }
-
-LOH.GameGUI=function(dispatch){
+LOH.LoadingGUI=function(){
+	this.domElement=document.createElement('div');
+	
+}
+LOH.GameGUI=function(){
 	this.domElement=document.createElement('div');
 	
 }

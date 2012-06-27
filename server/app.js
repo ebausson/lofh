@@ -94,7 +94,7 @@ app.post("/login", function (req, res) {
 				  var session = JSON.parse(sessions[i]);
 				  if (session.username == req.body.username) {
 						app.sessionStore.destroy(session, function(){
-							connections[account._id].disconnect();
+							connections[account._id].socket.disconnect();
 							delete connections[account._id];
 						});
 					break;
@@ -146,33 +146,30 @@ sockets.authorization(function (handshakeData, callback) {
 });
 // Active sockets by session
 sockets.on('connection', function (socket) { // New client
-	
 	// this is required if we want to access this data when user leaves, as handshake is
 	// not available in "disconnect" event.
 	DB.collection('accounts').findOne({_id:ObjectId(socket.handshake._id)},function(err,account){
-		var client;
 		if (!err && account){
-			connections[account._id] = socket;
+			connection=connections[account._id]={};
+			connection.socket= socket;
 			if(!account.entityID){
-				client=new game.Character(account.name);
-				DB.collection('entities').insert(client);
-				account.entityID=client._id;
+				connection.entity=new game.Character(account.name);
+				DB.collection('entities').insert(entity);
+				account.entityID=entity._id;
 				DB.collection('accounts').save(account,function(err,entity){});
-				game.gameEntities[client._id]=client;
+				game.gameEntities[entity._id]=entity;
 			}else{
-				client=game.gameEntities[account.entityID];
-				//send message ready for character customization
-				socket.emit('SelectScreen', DEFAULT.defaultScene());
+				connection.entity=game.gameEntities[account.entityID];
 			}
-			socket.on('play', function (data) {
-				custom=DEFAULT.defaultScene();
-				custom.objects=game.viewSerializer(game.gameEntities);
-				socket.emit('ready',{"id":client._id,"ressource":custom});
-				socket.on('event', function (data) {
-					try{
-						game.gameRules[data['func']](game.gameEntities[client._id],data['data'],data['timestamp']);
-						}catch(err){console.log(err)}
-				});
+			//socket.on('toto',function(data){console.log('tictoc',data)});
+			socket.on('ressourceQuery', function (data) {
+				socket.emit('ressourceSync', {'id':data.msg,'ressource':DEFAULT.defaultRessource()});
+			});
+			socket.on('ClientEvent', function (data) {
+				try{
+					clientEvents[data.msg.id](connection,data.msg);
+					//console.log(data.msg)
+				}catch(err){console.log(err)}
 			});
 			socket.on('disconnect', function () {
 					delete connections[account._id];
@@ -182,6 +179,7 @@ sockets.on('connection', function (socket) { // New client
 				sockets.emit('message', account.username, message, Date.now());
 			});
 			//-------------------------------
+			socket.emit('waiting');
 		}else{
 			console.log(err)
 		}
@@ -195,14 +193,36 @@ var loadDB=function(){
 	});
 }
 var update=function(){
-
-			sockets.emit('sync',game.gameEntities);
+	for(conn in connections){
+		if(connections[conn].ready)
+			connections[conn].socket.emit('sync',{'objects':game.gameEntities,'timestamp':new Date().getTime()});
+	}
 
 };
 loadDB();
-setInterval(update,100);
+setInterval(update,1000);
 setInterval(storeCleanUp,10*1000);
 
+var clientEvents={}
+clientEvents['SelectReady']=function(connection,data){
+	id=connection.entity._id
+	connection.socket.emit('sync',{"objects":{id:connection.entity},"more":{"avatar":id,'ligths':{'b':'light1','c':'light2'}}});
+}
+clientEvents['play']=function(connection,data){
+	custom=DEFAULT.defaultRessource();
+	custom.objects=game.viewSerializer(game.gameEntities);
+	connection.socket.emit('sync',{"id":connection.entity._id});
+}
+clientEvents['GameReady']=function(connection){
+	id=connection.entity._id
+	connection.socket.emit('sync',{"objects":{id:connection.entity},"more":{"avatar":id,'ligths':{'b':'light1','c':'light2'}}});
+	connection.socket.on('GameEvent', function (data) {
+		try{
+			game.gameRules[data.msg['func']](game.gameEntities[connection.entity._id],data.msg['data'],data.msg['timestamp']);
+		}catch(err){console.log(err)}
+	});
+	connection.ready=true;
+}
 /** Start server */
 if (!module.parent) {
   app.listen(port)

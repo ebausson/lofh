@@ -1,5 +1,5 @@
 
-LOH.Input=function(dispatch,domElement){
+LOH.Input=function(domElement){
 	
 	this.forward = false;
 	this.backward = false;
@@ -9,55 +9,28 @@ LOH.Input=function(dispatch,domElement){
 	var moveForward = function(state){
 		if(this.forward != state){
 			this.forward = state;
-			dispatch['sendMoveObject'].call(this);
+			dispatch['updateAvatarMove'](this);
 		}
 		
 	};
 	var moveBackward = function(state){
 		if(this.backward != state){
 			this.backward = state;
-			dispatch['sendMoveObject'].call(this);
+			dispatch['updateAvatarMove'](this);
 		}
 	};
 	var moveLeft = function(state){
 		if(this.left !=state){
 			this.left = state;
-			dispatch['sendMoveObject'].call(this);
+			dispatch['updateAvatarMove'](this);
 		}
 	};
 	var moveRight = function(state){
 		if(this.right !=state){
 			this.right = state;
-			dispatch['sendMoveObject'].call(this);
+			dispatch['updateAvatarMove'](this);
 		}
 	};
-	
-	dispatch['sendMoveObject']=function(){
-		var obj={
-			'func':'move'
-			,'data':{
-				'rotation':dispatch["getrotation"]()
-				,'forward':this.forward
-				,'backward':this.backward
-			}
-		}
-		if(this.mouseRDown){
-			obj.data.rotationmove=0
-			if(this.downX>this.mouseX)
-				obj.data.rotationmove+=1
-			if(this.downX>this.mouseX)
-				obj.data.rotationmove-=1
-			obj.data.left=this.left;
-			obj.data.right=this.right;
-		}else{
-			obj.data.rotationmove=0
-			if(this.left)
-				obj.data.rotationmove+=1
-			if(this.right)
-				obj.data.rotationmove-=1
-		}
-		dispatch['event'](obj)
-	}
 	
 	var keyMap=[];
 	//move forward (38:up,87:'z')
@@ -200,15 +173,31 @@ LOH.Input=function(dispatch,domElement){
 			this.mouseDragOn = true;
 		}
 	};
+	var mousewheelevt=(/Firefox/i.test(navigator.userAgent))? "DOMMouseScroll" : "mousewheel"
+	
 	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
 	
 	window.addEventListener( 'keydown', bind( this,this.onKeyDown) , true );
 	window.addEventListener( 'keyup', bind( this,this.onKeyUp) , true );
-	var mousewheelevt=(/Firefox/i.test(navigator.userAgent))? "DOMMouseScroll" : "mousewheel"
+	
+	
 	this.domElement.addEventListener( mousewheelevt, bind( this, this.mousewheel ), false );
 	this.domElement.addEventListener( 'mousewheel', bind( this, this.mousewheel ), false );
 	this.domElement.addEventListener( 'mousemove', bind( this, this.onMouseMove ), false );
 	this.domElement.addEventListener( 'mousedown', bind( this, this.onMouseDown ), false );
 	this.domElement.addEventListener( 'mouseup', bind( this, this.onMouseUp ), false );
-
+	
+	this.unbindListeners=function(){
+		this.domElement.removeEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
+	
+		window.removeEventListener( 'keydown', bind( this,this.onKeyDown) , true );
+		window.removeEventListener( 'keyup', bind( this,this.onKeyUp) , true );
+	
+	
+		this.domElement.removeEventListener( mousewheelevt, bind( this, this.mousewheel ), false );
+		this.domElement.removeEventListener( 'mousewheel', bind( this, this.mousewheel ), false );
+		this.domElement.removeEventListener( 'mousemove', bind( this, this.onMouseMove ), false );
+		this.domElement.removeEventListener( 'mousedown', bind( this, this.onMouseDown ), false );
+		this.domElement.removeEventListener( 'mouseup', bind( this, this.onMouseUp ), false );
+	}
 }

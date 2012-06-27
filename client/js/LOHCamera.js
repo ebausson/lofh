@@ -1,108 +1,69 @@
-LOH.SelectScreenCamera=function(scene){
+LOH.SelectScreenCamera=function(world,input){
 
-	var camera=new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 1, 100 );
-	var projector = new THREE.Projector();
+	var camera=new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 1, 20000 );
+
 	camera.position.y=10;
 	camera.position.z=20;
-	var pos= new THREE.Vector4(camera.position.x,0,camera.position.z,1);
-	scene.add(camera);
-	target=new THREE.Vector4();
-	
+	var pos= new Vec4(camera.position.x,0,camera.position.z,1);
 	this.update=function(delta){
 		var mat=new THREE.Matrix4();
 		mat.rotateY(delta*0.001);
 		pos=mat.crossVector(pos);
 		camera.position.x=pos.x;
 		camera.position.z=pos.z;
-		camera.lookAt(target);
+		camera.lookAt(world.getAvatar().getPosition());
 	}
 	
-	this.getCamera=function(){
-		return camera;
-	}
+	this.getCamera=function(){return camera;}
  }
- 
-LOH.thirdPerson=function(dispatch,scene,input,targetID){	
+ LOH.StaticCamera=function(world,input){
+
+	var camera=new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 1, 100 );
+	camera.position=new Vec3();
+	this.update=function(delta){}
+	this.getCamera=function(){return camera;}
+ }
+LOH.thirdPersonCamera=function(world,input){	
 
 	var camera=new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 1, 20000 );
 	var projector = new THREE.Projector();
 	camera.position.x=0;
 	camera.position.y=10;
 	camera.position.z=10;
-	scene.add(camera);
-	var pos= new THREE.Vector4(camera.position.x,0,camera.position.z,1);
+	var pos= new Vec4(camera.position.x,0,camera.position.z,1);
 	
-	target= scene.getChildByName(targetID);
-	target.lookAt( pos.clone().negate().addSelf(target.position))
-	camera.lookAt(target.position);
+	world.getAvatar().getMesh().lookAt( pos.clone().negate().addSelf(world.getAvatar().getPosition()))
+	camera.lookAt(world.getAvatar().getPosition());
 	
-	dispatch['getrotation']=function(){
-			return target.rotation;
-	}
-	mouseLDown=false;
 	this.update=function(delta){
 		
 		if (input.mouseDragOn){
 			var mat=new THREE.Matrix4();
-			mat.rotateY((input.downX - input.mouseX)*2*Math.PI/360);
+			mat.rotateY((input.downX - input.mouseX)*0.5*2*Math.PI/360);
 			pos=mat.crossVector(pos);
-			input.downX = input.mouseX;	
+			input.downX = input.mouseX;
 		}
 		if(input.mouseLDown){
 			if(!mouseLDown){
 				mouseLDown=true;
-				var vector = new THREE.Vector3( ( input.mouseX / window.innerWidth ) * 2 - 1, - ( input.mouseY / window.innerHeight ) * 2 + 1 , 0.5 );
+				var vector = new Vec3( ( input.mouseX / window.innerWidth ) * 2 - 1, - ( input.mouseY / window.innerHeight ) * 2 + 1 , 0.5 );
 				projector.unprojectVector( vector, camera );
 
 				var ray = new THREE.Ray( camera.position, vector.subSelf( camera.position ).normalize() );
 
-				var intersects = ray.intersectObjects( scene.__objects );
+				var intersects = ray.intersectObjects( world.scene.__objects );
 
 				if ( intersects.length > 0 ) {
-					dispatch['event']({
-						"func":"target"
-						,"data":{
-							"target":intersects[ 0 ].name
-						}
-					})
+					world.changeSelection(intersects[ 0 ].object)
 				}
 			}
 		}else{
 			mouseLDown=false;
 		}
-		
-		var move=new THREE.Vector4();
 		if(input.mouseRDown){
-			target.lookAt( pos.clone().negate().addSelf(target.position));
-			dispatch['sendMoveObject'].call(input);
-		}
-		var mat=new THREE.Matrix4().setRotationFromEuler(target.rotation,target.eulerOrder);
-		if(input.mouseRDown){
-			if (input.left){
-				move.x+=1
-			}
-			if (input.right){
-				move.x+=-1
-			}
-		}else{
-			if (input.left){
-				mat.rotateY(delta*0.001);
-			}
-			if (input.right){
-				mat.rotateY(-delta*0.001);
-			}
-		}
-			target.rotation.getRotationFromMatrix( mat );
-		if (input.forward){
-			move.z+=1;
-		}
-		if (input.backward){
-			move.z+=-1;
-		}
-		move=mat.crossVector(move);
-		move.w=0;
-		if(input.forward||input.backward||input.left||input.right)
-			target.position.addSelf(move.normalize().multiplyScalar(delta*0.01))
+			world.getAvatar().getMesh().lookAt( pos.clone().negate().addSelf(world.getAvatar().getPosition()));
+			dispatch['updateAvatarMove'](input);
+		}			
 		
 		if (input.zoomCamera != 0 ){
 			if( pos.length()+input.zoomCamera<100){
@@ -116,11 +77,9 @@ LOH.thirdPerson=function(dispatch,scene,input,targetID){
 			}
 			input.zoomCamera=0;
 		}
-		camera.position.x=target.position.x+pos.x;
-		camera.position.y=target.position.y+(pos.lengthSq())/100;
-		camera.position.z=target.position.z+pos.z;
+		camera.position=world.getAvatar().getPosition().clone().addSelf(new Vec3(pos.x,(pos.lengthSq())/100,pos.z));
 		
-		camera.lookAt(target.position);
+		camera.lookAt(world.getAvatar().getPosition());
 	}
 
 	this.getCamera=function(){return camera;}

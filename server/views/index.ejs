@@ -1,17 +1,21 @@
 	<script type="text/javascript" src="/static/js/socket.io.min.js"></script> 
 	<script type="text/javascript" src="/static/js/RequestAnimationFrame.js"></script>
 	<script type="text/javascript" src="/static/js/Three.js"></script>
+	<script type="text/javascript" src="/static/js/ThreeUtils.js"></script>
 	<script type="text/javascript" src="/static/js/LOH.js"></script>
 	<script type="text/javascript" src="/static/js/LOHCamera.js"></script>
 	<script type="text/javascript" src="/static/js/LOHGame.js"></script>
 	<script type="text/javascript" src="/static/js/LOHWorld.js"></script>
+	<script type="text/javascript" src="/static/js/LOHRessource.js"></script>
+	<script type="text/javascript" src="/static/js/LOHEntity.js"></script>
 	<script type="text/javascript" src="/static/js/LOHView.js"></script>
 	<script type="text/javascript" src="/static/js/LOHInput.js"></script>
 	<script type="text/javascript" src="/static/js/LOHGUI.js"></script>
 	<script type="text/javascript" src="/static/js/Stats.js"></script>
 	<script type="text/javascript" src="/static/js/LOHSocket.js"></script>
-	
+	<script type="text/javascript" src="/static/js/Detector.js"></script>
 	<script type="text/javascript">
+		if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 		window.onload=function()
 		{
 			var game=new LOH.Game();

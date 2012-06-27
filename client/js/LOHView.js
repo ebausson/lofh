@@ -4,102 +4,84 @@
 **
 */
 
-LOH.SelectScreenView=function(dispatch,webGlContext,data){
+LOH.View=function(webGlContext){
+	// scope=this;
+	var activ=false;
+	var GUI,camera,input;
+	var GUIProfile={
+		'LoadingScreen':{'GUI':LOH.LoadingGUI,'Camera':LOH.StaticCamera,'InitFunc':LoadingScreenInit}
+		,'SelectScreen':{'GUI':LOH.SelectScreenGUI,'Camera':LOH.SelectScreenCamera,'InitFunc':SelectScreenInit}
+		,'GameScreen':{'GUI':LOH.GameGUI,'Camera':LOH.thirdPersonCamera,'Input':LOH.Input,'InitFunc':GameScreenInit}
+	}
 	
-	var GUI=new LOH.SelectScreenGUI(dispatch);
-	
-	webGlContext.domElement.appendChild(GUI.domElement);
-	
-	
-	var loader = new THREE.SceneLoader();
-	// loader.callbackSync = function(){};
-	// loader.callbackProgress = function(){};
-	
-	
-	scene = new THREE.Scene();
-	callbackFinished=function(result){
-		scene=result.scene;
-		camera = new LOH.SelectScreenCamera(scene);
-		ressource=result;
+	this.switchGUIProfil=function(mode,opt){
+		activ=!activ;
+		if(GUI){
+			webGlContext.domElement.removeChild(GUI.domElement);
+			delete GUI;
+		}
+		GUI=new GUIProfile[mode].GUI()
+		webGlContext.domElement.appendChild(GUI.domElement);
+		if(input){
+			input.unbindListeners();
+			delete input;
+		}
+		if(GUIProfile[mode].Input)
+			input=new GUIProfile[mode].Input(webGlContext.domElement);
+		if(camera){
+			world.scene.remove(camera.getCamera());
+			delete camera;
+		}
+		camera=new GUIProfile[mode].Camera(world,input);
+		
+		
+		if(GUIProfile[mode].InitFunc)
+			GUIProfile[mode].InitFunc.call(this,opt)
 		animate();
 	}
 	
-	var activ=true;
+	function LoadingScreenInit(opt){
+		world.scene=new THREE.Scene();
+		world.scene.add(camera.getCamera());
+		world.load(opt,bind(this,function(){
+			this.switchGUIProfil(opt);
+		}));
+	}
+	function SelectScreenInit(opt){
+		world.scene=new THREE.Scene();
+		world.scene.add(camera.getCamera());
+		dispatch['ClientEvent']({"id":'SelectReady'})
+		dispatch['play']=bind(this,function(data){
+			this.switchGUIProfil('LoadingScreen','GameScreen');
+			delete dispatch['play'];
+		});
+	}
+	function GameScreenInit(opt){
+		world.scene=new THREE.Scene();
+		world.scene.add(camera.getCamera());
+		dispatch['ClientEvent']({"id":'GameReady'})
+	}
+	var world = new LOH.World();
+	
+	
 	var time;
 	animate=function(){
-		if(activ)
-		requestAnimationFrame(animate);
-		var now = new Date().getTime(),
-		dt = now - (time || now);
-		time = now;
-		camera.update(dt);
-		webGlContext.renderer.render( scene,camera.getCamera());
-		webGlContext.stats.update();
-	}
-	console.log(data);
-	loader.createScene(data,callbackFinished,"/static/");
-	this.stop=function(){
-		activ=false;
-		webGlContext.domElement.removeChild(GUI.domElement);
-	}
-	
-	window.addEventListener( 'resize', bind(this,onWindowResize), false );
-	function onWindowResize( event ) {
-	
-		GUI.domElement.width = window.innerWidth;
-		GUI.domElement.height = window.innerHeight;
-
-		camera.getCamera().aspect = GUI.domElement.width/ GUI.domElement.height;
-		camera.getCamera().updateProjectionMatrix();
-
-	}
-}
-
-/*
-**
-**
-**
-*/
-LOH.GameView=function(dispatch,webGlContext,data){
-
-	var GUI=new LOH.GameGUI(dispatch);
-	
-	webGlContext.domElement.appendChild(GUI.domElement);
-	
-	
-	var loader = new THREE.SceneLoader();
-	// loader.callbackSync = function(){};
-	// loader.callbackProgress = function(){};
-	
-	var input=new LOH.Input(dispatch,webGlContext.domElement);
-	scene = new THREE.Scene();
-	callbackFinished=function(result){
-		scene=result.scene;
-		scene.add(new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 100, 100),new THREE.MeshBasicMaterial( { color: Math.random() * 0xffffff, opacity: 0.5 } )));
-		camera = new LOH.thirdPerson(dispatch,scene,input,data.id);
-		ressource=result;
-		animate();
-	}
-	var activ=true;
-	var time;
-	animate=function(){
-		if(activ)
+		if(activ){
 			requestAnimationFrame(animate);
-		var now = new Date().getTime(),
-		dt = now - (time || now);
-		time = now;
-		camera.update(dt);
-		webGlContext.renderer.render( scene,camera.getCamera());
-		webGlContext.stats.update();
+			var now = new Date().getTime(),
+			dt = now - (time || now);
+			time = now;
+			camera.update(dt);
+			world.update(dt)
+			webGlContext.renderer.render( world.scene,camera.getCamera());
+			webGlContext.stats.update();
+		}else{
+			activ=true
+		}
 	}
-	console.log(data);
-	loader.createScene(data.ressource,callbackFinished,"/static/");
-
-	var world = new LOH.World(dispatch,scene,ressource);
-	this.stop=function(){
-		activ=false;
 	
-	}
+	this.stop=function(){;}
+	
 	window.addEventListener( 'resize', bind(this,onWindowResize), false );
 	function onWindowResize( event ) {
 	

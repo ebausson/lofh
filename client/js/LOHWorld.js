@@ -1,57 +1,99 @@
-LOH.World=function(dispatch,scene,ressources)
+LOH.World=function()
 {
+	scope=this;
+	this.scene=new THREE.Scene();
+	var entities={};
 	
-	var setTarget=function(id){
-		this.target=id;
+	var avatar;
+	var selection;
+	this.getAvatar=function(){
+		avatar=avatar||new LOH.Entity(LOH.DummyEntity);
+		return avatar;
 	}
-	
-	var getEntity=function(id){
-		if(id=="target"){
-			if(typeof(this.target)!='undefined')
-			{
-				return scene.getChildByName(this.target,false);
-			}else{
-				return 0;
+	dispatch['updateAvatarMove']=function(input){
+		var move=new Vec4();
+		var rotationmove=0;
+		if(input.mouseRDown){
+			if (input.left){
+				move.x+=1
+			}
+			if (input.right){
+				move.x+=-1
 			}
 		}else{
-			return scene.getChildByName(id,false);
+			if (input.left){
+				rotationmove+=1;
+			}
+			if (input.right){
+				rotationmove-=1;
+			}
 		}
-	}
-	var addEntity=function(name,shapeID,materialID,position){
-		mesh = new THREE.Mesh( getShape.call(this,shapeID), getMaterial.call(this,materialID) );
-		mesh.name=name;
-		scene.add(mesh);
-	}
-
-	var getShape=function(shapeID){
-		if(ressources.geometries[shapeID]){
-			return ressources.geometries[shapeID];
-		}else{
-			return ressources.geometries['cube'];
+		if (input.forward){
+			move.z+=1;
 		}
+		if (input.backward){
+			move.z+=-1;
+		}
+		avatar.SetRotationMove(rotationmove);
+		avatar.SetMove(move);
+		dispatch['GameEvent']({
+			'func':'move'
+			,'data':{
+				'rotation':avatar.getRotation()
+				,'move':avatar.getMove()
+				,'rotationmove':avatar.getRotationMove()
+			}
+		});
 	}
 	
-	var getMaterial=function(materialID){
-		if(ressources.materials[materialID]){
-			return ressources.materials[materialID];
-		}else{
-			return ressources.materials['lambert_red'];
-		}
+	this.changeSelection=function(mesh){
+		if(selection)
+			selection.unselect();
+		selection=entities[mesh.entId];
+		selection.select();
+		dispatch['GameEvent']({
+			"func":"target"
+			,"data":{"target":selection.id}
+		});
+	}
+	
+	this.update=function(dt){
+		for(num in entities)
+			entities[num].update(dt);
+	}
+	
+	this.load=function(which,callback){
+		LOH.Ressources.getRessource(which,callback);
+	}
+	
+	var addEntity=function(data){
+		ent=new LOH.Entity(data);
+		entities[data._id]=ent;
+		scope.scene.add(ent.getMesh());
 	}
 	
 	dispatch['sync']=function(data){
-		for(ent in data){
-			var tmp=scene.getChildByName(data[ent]._id,false);
+		var now = new Date().getTime(),
+		dt = now - (data.timestamp || now);
+		for(id in data.objects){
+			ent=data.objects[id];
+			var tmp=entities[id];
 			if(!tmp){
-				addEntity.call(this,data[ent]._id,1,1);
-				scene.getChildByName(data[ent]._id,false).position.copy(data[ent].position);
+				addEntity(ent);
 			}else{
-				if((tmp.name!=this.target)||(new THREE.Vector4().sub(tmp.position,data[ent].position).length()>2)){
-					tmp.position.copy(data[ent].position);
-					tmp.rotation.copy(data[ent].rotation);
+				if((tmp!=avatar)||(new Vec3().copy(ent.position).subSelf(tmp.getPosition()).length()>10)){
+					tmp.synchronize(ent,dt);
 				}
 			}
 		}
-	}
+		if(data.more){
+			if(data.more.avatar)
+				avatar=entities[data.more.avatar];
+			
+			for(id in data.more.ligths){
+				ligth=LOH.Ressources.getRessource({'type':'lights','id':data.more.ligths[id]},function(){})
+				scope.scene.add(ligth)
+			}
+		}
+	};
 }
-
