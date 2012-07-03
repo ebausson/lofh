@@ -1,17 +1,12 @@
 LOH.SelectScreenCamera=function(world,input){
 
-	var camera=new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 1, 20000 );
-
-	camera.position.y=10;
+	var camera=new THREE.PerspectiveCamera( 65, window.innerWidth / window.innerHeight, 1, 100 );
+	camera.position.y=20;
 	camera.position.z=20;
-	var pos= new Vec4(camera.position.x,0,camera.position.z,1);
+	target=new Vec3()
+	camera.lookAt(target);
 	this.update=function(delta){
-		var mat=new THREE.Matrix4();
-		mat.rotateY(delta*0.001);
-		pos=mat.crossVector(pos);
-		camera.position.x=pos.x;
-		camera.position.z=pos.z;
-		camera.lookAt(world.getAvatar().getPosition());
+		
 	}
 	
 	this.getCamera=function(){return camera;}

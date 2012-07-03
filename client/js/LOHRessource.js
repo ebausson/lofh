@@ -1,4 +1,5 @@
 LOH.Ressources=new function(){
+	scope=this;
 	var ressources={ 
 	"patterns":{}
 	,"geometries":{}
@@ -51,8 +52,20 @@ LOH.Ressources=new function(){
 			delete waitinQueue[id][n];
 		}
 	}
-	
-	
+	var urlBase = THREE.Loader.prototype.extractUrlBase( "/static/" );
+	function get_url( source_url, url_type ) {
+
+		if ( url_type == "relativeToHTML" ) {
+
+			return source_url;
+
+		} else {
+
+			return urlBase + "/" + source_url;
+
+		}
+
+	};
 	
 	loadRessource=function(data,callbackFinished){
 		binLoader = new THREE.BinaryLoader();

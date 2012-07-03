@@ -1,57 +1,52 @@
-LOH.Entity=function(data){
+LOH.Object3D=function(data){
+	this.id=data._id;
+	this.name=data.name;
+	this.position=new Vec3(0,0,0);
 	
-	var id=data._id;
-	var position=new Vec3().copy(data.position);
-	var rotation=new Vec3().copy(data.rotation);
-	var scale=new Vec3().copy(data.scale);
-	var mesh=LOH.PatternFactory(LOH.Ressources.getRessource({'type':'patterns','id':data.pattern},function(pattern){mesh=LOH.PatternFactory(pattern)}),id);
-	mesh.position=position;
-	mesh.rotation=rotation;
-	mesh.scale=scale;
-	var move=new Vec4().copy(data.move);
-	var rotationmove=data.rotationmove||0;
-	var rotationspeed=data.rotationspeed||0.001;
+	if(data.position)
+		this.position.copy(data.position);
+		
+	this.rotation=new Vec3(0,0,0);
+	if(data.rotation)
+		this.rotation.copy(data.rotation);
+	
+	this.scale=new Vec3(1,1,1);
+	if(data.scale)
+		this.scale.copy(data.scale);
+	
+	this.mesh=LOH.PatternFactory(LOH.Ressources.getRessource({'type':'patterns','id':data.pattern},function(pattern){mesh=LOH.PatternFactory(pattern)}),id);
+	this.mesh.position=this.position;
+	this.mesh.rotation=this.rotation;
+	this.mesh.scale=this.scale;
 	this.select=function(){
-		mesh.add(LOH.PatternFactory(LOH.Ressources.getRessource({'type':'patterns','id':'selection'},function(){}),id));
+		this.mesh.add(LOH.PatternFactory(LOH.Ressources.getRessource({'type':'patterns','id':'selection'},function(){}),id));
 	}
 	this.unselect=function(){
-		select=mesh.getChildByName("selection",true)
-		mesh.remove(select);
+		select=this.mesh.getChildByName("selection",true)
+		this.mesh.remove(select);
 	}
 	this.changeStand=function(stand){
-		action=mesh.actions[stand]
+		action=this.mesh.actions[stand]
 		for(part in action){
 			if(part == 'self'){
-				mesh.currentAnimation=action[part];
+				this.mesh.currentAnimation=action[part];
 			}else{
-				mesh.getChildByName(part,true).currentAnimation=action[part]
+				this.mesh.getChildByName(part,true).currentAnimation=action[part]
 			}
 		}
 	}
-
-	this.update=function(dt){
-		var mat=new THREE.Matrix4().setRotationFromEuler(rotation,mesh.eulerOrder);
-		mat.rotateY(rotationmove*dt*rotationspeed);
-		rotation.getRotationFromMatrix( mat );
-		tmp_move=mat.crossVector(move);
-		tmp_move.w=0;
-		if(tmp_move.length()>0){
-			this.changeStand('walk');
-		}else{
-			this.changeStand('stand');
-		}
-		position.addSelf(tmp_move.normalize().multiplyScalar(dt*0.01))
-		anim(mesh);
-	}
-	anim=function(m){
+	this.update=function(dt){anim(this.mesh,dt);}
+	
+	anim=function(m,dt){
 		for(child in m.children)
-			anim(m.children[child]);
+			anim(m.children[child],dt);
 		if(m.currentAnimation && m.morphTargetBase){
 			m.animations[m.currentAnimation].lastKeyframe = m.animations[m.currentAnimation].lastKeyframe||0;
 			m.animations[m.currentAnimation].currentKeyframe = m.animations[m.currentAnimation].currentKeyframe||0;
-			var tme = new Date().getTime() % m.animations[m.currentAnimation].duration;
+			m.animations[m.currentAnimation].tme=m.animations[m.currentAnimation].tme||0;
+			m.animations[m.currentAnimation].tme = (m.animations[m.currentAnimation].tme+dt) % m.animations[m.currentAnimation].duration;
 
-			var keyframe = m.animations[m.currentAnimation].start+Math.floor( tme / m.animations[m.currentAnimation].interpolation );
+			var keyframe = m.animations[m.currentAnimation].start+Math.floor( m.animations[m.currentAnimation].tme / m.animations[m.currentAnimation].interpolation );
 
 			if ( keyframe != m.currentKeyframe ) {
 
@@ -66,28 +61,76 @@ LOH.Entity=function(data){
 
 			}
 
-			m.morphTargetInfluences[ keyframe ] = ( tme % m.animations[m.currentAnimation].interpolation ) / m.animations[m.currentAnimation].interpolation;
+			m.morphTargetInfluences[ keyframe ] = ( m.animations[m.currentAnimation].tme % m.animations[m.currentAnimation].interpolation ) / m.animations[m.currentAnimation].interpolation;
 			m.morphTargetInfluences[ m.lastKeyframe ] = 1 - m.morphTargetInfluences[ keyframe ];
 		}
 		
 	
 	}
-	this.synchronize=function(syncdata,dt){
-		position.copy(syncdata.position);
-		rotation.copy(syncdata.rotation);
-		move.copy(syncdata.move);
-		rotationmove=syncdata.rotationmove;
-		var mat=new THREE.Matrix4().setRotationFromEuler(rotation,mesh.eulerOrder);
+	this.getMesh=function(){return this.mesh;}
+	this.getPosition=function(){return this.position;}
+	this.getRotation=function(){return this.rotation;}
+}
+
+
+LOH.Entity=function(data){
+	LOH.Object3D.call(this,data);
+	
+	var move=new Vec4();
+	if(data.move)
+		move.copy(data.move);
+	var rotationmove=data.rotationmove||0;
+	var speed=data.speed||0.01;
+	var rotationspeed=data.rotationspeed||0.001;
+	
+
+	this.update=function(dt){
+		var mat=new THREE.Matrix4().setRotationFromEuler(this.rotation,this.mesh.eulerOrder);
 		mat.rotateY(rotationmove*dt*rotationspeed);
-		rotation.getRotationFromMatrix( mat );
+		this.rotation.getRotationFromMatrix( mat );
 		tmp_move=mat.crossVector(move);
 		tmp_move.w=0;
-		position.addSelf(tmp_move.normalize().multiplyScalar(dt*syncdata.speed))
+		if(tmp_move.length()>0){
+			this.changeStand('walk');
+			// if(this.mesh.parent){
+				// var rayFront = new THREE.Ray( this.position.clone().addSelf(new THREE.Vector3(0,5,0)), tmp_move.clone().normalize() );
+				// var intersectsFront = rayFront.intersectObjects( this.mesh.parent.__objects );
+				
+				// if ( intersectsFront.length > 0 && tmp_move.length()>intersectsFront[0].distance ) {
+						// move.set([0,0,0,1])
+				// }else{
+					// var rayDown = new THREE.Ray( this.position.clone().addSelf(new THREE.Vector3(0,10,0)), new THREE.Vector3(0,-5,0) );
+					// var intersectsDown = rayDown.intersectObjects( this.mesh.parent.__objects );
+					// tmp_move.normalize();
+					// if(intersectsFront.length > 0){
+						// dist= 10-intersectsFront[0].distance;
+						// if(dist*dist >1)
+							// dist=(dist>0)?1:-1;
+						// tmp_move.y=dist;
+					// }
+					this.position.addSelf(tmp_move.multiplyScalar(dt*speed));
+				// }
+			// }
+		}else{
+			this.changeStand('stand');
+		}
+		anim(this.mesh,dt);
+	}
+	
+	this.synchronize=function(syncdata,dt){
+		this.position.copy(syncdata.position);
+		this.rotation.copy(syncdata.rotation);
+		move.copy(syncdata.move);
+		rotationmove=syncdata.rotationmove;
+		var mat=new THREE.Matrix4().setRotationFromEuler(this.rotation,this.mesh.eulerOrder);
+		mat.rotateY(rotationmove*dt*rotationspeed);
+		this.rotation.getRotationFromMatrix( mat );
+		tmp_move=mat.crossVector(move);
+		tmp_move.w=0;
+
+		this.position.addSelf(tmp_move.normalize().multiplyScalar(dt*speed))
 	}
 	//geter
-	this.getMesh=function(){return mesh;}
-	this.getPosition=function(){return position;}
-	this.getRotation=function(){return rotation;}
 	this.getMove=function(){return move;}
 	this.getRotationMove=function(){return rotationmove;}
 	//seter
@@ -102,6 +145,10 @@ LOH.DummyEntity={
 	,move:new Vec4()
 	,pattern:'cube'
 };
+LOH.MapElement=function(data){
+	LOH.Object3D.call(this,data);
+	this.synchronize=function(syncdata,dt){}
+}
 LOH.PatternFactory=function(pattern,entId){
 	var mesh,geometry,materials;
 	if(pattern.geometry && pattern.materials){

@@ -13,9 +13,10 @@ LOH.View=function(webGlContext){
 		,'SelectScreen':{'GUI':LOH.SelectScreenGUI,'Camera':LOH.SelectScreenCamera,'InitFunc':SelectScreenInit}
 		,'GameScreen':{'GUI':LOH.GameGUI,'Camera':LOH.thirdPersonCamera,'Input':LOH.Input,'InitFunc':GameScreenInit}
 	}
-	
+	localDispatch={};
 	this.switchGUIProfil=function(mode,opt){
 		activ=!activ;
+		localDispatch={};
 		if(GUI){
 			webGlContext.domElement.removeChild(GUI.domElement);
 			delete GUI;
@@ -41,29 +42,48 @@ LOH.View=function(webGlContext){
 	}
 	
 	function LoadingScreenInit(opt){
-		world.scene=new THREE.Scene();
+		world.reset();
 		world.scene.add(camera.getCamera());
 		world.load(opt,bind(this,function(){
 			this.switchGUIProfil(opt);
 		}));
 	}
 	function SelectScreenInit(opt){
-		world.scene=new THREE.Scene();
+		world.reset();
 		world.scene.add(camera.getCamera());
 		dispatch['ClientEvent']({"id":'SelectReady'})
+		localDispatch['setCharacters']=function(params){
+			GUI.init(params.data)
+		}
+		localDispatch['selectCharacter']=function(params){
+			if(params.old)
+				world.removeFromScene(params.old);
+			if(params.select)
+				world.addToScene(params.select);
+			
+		}
+		dispatch['create']=bind(this,function(data){
+			dispatch['ClientEvent']({'id':'CreateCharacter','which':data})
+			this.switchGUIProfil('LoadingScreen','GameScreen');
+			delete dispatch['create'];
+		});
 		dispatch['play']=bind(this,function(data){
+			dispatch['ClientEvent']({'id':'play','which':data})
 			this.switchGUIProfil('LoadingScreen','GameScreen');
 			delete dispatch['play'];
 		});
 	}
 	function GameScreenInit(opt){
-		world.scene=new THREE.Scene();
+		world.reset();
 		world.scene.add(camera.getCamera());
 		dispatch['ClientEvent']({"id":'GameReady'})
 	}
 	var world = new LOH.World();
 	
-	
+	dispatch['Clientsync']=function(data){
+		console.log('Clientsync(View):',data)
+		localDispatch[data.func](data.params);
+	}
 	var time;
 	animate=function(){
 		if(activ){

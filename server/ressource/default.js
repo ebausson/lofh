@@ -1,4 +1,4 @@
-module.exports.defaultRessource=function() {return{
+module.exports={
 		"patterns":{
 			"cube" : {
 				"geometry" : "cube"
@@ -387,32 +387,5 @@ module.exports.defaultRessource=function() {return{
 			,"bgalpha" : 1
 			,"camera"  : "cam1"
 			,"fog"	  : "black"
-			,"patterns" : {
-				"geometry" : "cube",
-				"materials": [ "lambert_red" ],
-				"position" : [ 0, 0, 0 ],
-				"rotation" : [ 0, -0.3, 0 ],
-				"scale"	   : [ 1, 1, 1 ],
-				"visible"  : true
-			}
-			,"geometries": {
-				"type"  : "cube",
-				"width" : 5,
-				"height": 10,
-				"depth" : 10,
-				"segmentsWidth"  : 1,
-				"segmentsHeight" : 1,
-				"segmentsDepth"  : 1,
-				"flipped" : false,
-				"sides"   : { "px": true, "nx": true, "py": true, "ny": true, "pz": true, "nz": true }
-			}
-			,"materials": {
-				"type": "MeshLambertMaterial",
-				"parameters": { "color": 16711680, morphTargets: true }
-			}
 		}
-	}}
-module.exports.defaultSceneTest
-// targetSelector=new THREE.Mesh( new THREE.PolyhedronGeometry([[0,-4,0],[0,4,0],[1,0,1],[1,0,-1],[-1,0,-1],[-1,0,1]],[[0,5,4],[0,4,3],[0,3,2],[0,2,5],[1,2,3],[1,5,2],[1,4,5],[1,3,4]]),new THREE.MeshBasicMaterial( { color: Math.random() * 0xffffff, opacity: 0.5 } ));
-	// targetSelector.position=new Vec3(0,10,0)
-	// targetSelector.scale=new Vec3(1,2,1)
+}

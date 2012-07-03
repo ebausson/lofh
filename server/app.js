@@ -2,12 +2,12 @@ const path = require('path')
     , express = require('express')
     , app = module.exports = express.createServer()
     , port = process.env.PORT || 3000
-	, ObjectId = require('bson').ObjectID
  /* game modules */
-	, game = require('./gameEngine.js')
+	
 	, DB = require('./DBacces.js')
-	, DEFAULT = require('./default.js')
+	, gFrame = require('./gamelib/gameFrame.js')(ready);
 	;
+
 /** Configuration */
 app.configure(function() {
   this.set('views', path.join(__dirname, 'views'));
@@ -83,10 +83,9 @@ app.post("/login", function (req, res) {
     // Validate if username is free
 	 req.sessionStore.all(function (err, sessions) {
       if (!err) {
-        
 		DB.collection('accounts').findOne({name:req.body.username},function(err,account){
 			if(!account){
-				account={name:req.body.username};
+				account={'name':req.body.username,'slots':{'slot1':0,'slot2':0,'slot3':0}};
 				DB.collection('accounts').insert(account);
 				console.log('new account',account)
 			}else{
@@ -94,8 +93,7 @@ app.post("/login", function (req, res) {
 				  var session = JSON.parse(sessions[i]);
 				  if (session.username == req.body.username) {
 						app.sessionStore.destroy(session, function(){
-							connections[account._id].socket.disconnect();
-							delete connections[account._id];
+							clientHandler.close(account._id)
 						});
 					break;
 				  }
@@ -111,10 +109,11 @@ app.post("/login", function (req, res) {
     });
   }
 });
-
+function ready(){
+console.log('ready')
 /** WebSocket */
-var connections = {};
 var io=require('socket.io').listen(app);
+var clientHandler=require('./clientHandler.js')(gFrame);
 io.set('log level', 1);
 var sockets = io.of('/game');
 sockets.authorization(function (handshakeData, callback) {
@@ -148,81 +147,12 @@ sockets.authorization(function (handshakeData, callback) {
 sockets.on('connection', function (socket) { // New client
 	// this is required if we want to access this data when user leaves, as handshake is
 	// not available in "disconnect" event.
-	DB.collection('accounts').findOne({_id:ObjectId(socket.handshake._id)},function(err,account){
-		if (!err && account){
-			connection=connections[account._id]={};
-			connection.socket= socket;
-			if(!account.entityID){
-				connection.entity=new game.Character(account.name);
-				DB.collection('entities').insert(entity);
-				account.entityID=entity._id;
-				DB.collection('accounts').save(account,function(err,entity){});
-				game.gameEntities[entity._id]=entity;
-			}else{
-				connection.entity=game.gameEntities[account.entityID];
-			}
-			//socket.on('toto',function(data){console.log('tictoc',data)});
-			socket.on('ressourceQuery', function (data) {
-				socket.emit('ressourceSync', {'id':data.msg,'ressource':DEFAULT.defaultRessource()});
-			});
-			socket.on('ClientEvent', function (data) {
-				try{
-					clientEvents[data.msg.id](connection,data.msg);
-					//console.log(data.msg)
-				}catch(err){console.log(err)}
-			});
-			socket.on('disconnect', function () {
-					delete connections[account._id];
-			});
-			// New message from client = "write" event
-			socket.on('write', function (message) {
-				sockets.emit('message', account.username, message, Date.now());
-			});
-			//-------------------------------
-			socket.emit('waiting');
-		}else{
-			console.log(err)
-		}
-	});
+	clientHandler.newClient(socket)
 });
-var loadDB=function(){
-	DB.collection('entities').find({},function(err,data){
-		for(i=0; i<data.length ; i++){
-			game.gameEntities[data[i]._id]=game.CopyEntity(data[i]);
-		}
-	});
 }
-var update=function(){
-	for(conn in connections){
-		if(connections[conn].ready)
-			connections[conn].socket.emit('sync',{'objects':game.gameEntities,'timestamp':new Date().getTime()});
-	}
-
-};
-loadDB();
-setInterval(update,1000);
 setInterval(storeCleanUp,10*1000);
 
-var clientEvents={}
-clientEvents['SelectReady']=function(connection,data){
-	id=connection.entity._id
-	connection.socket.emit('sync',{"objects":{id:connection.entity},"more":{"avatar":id,'ligths':{'b':'light1','c':'light2'}}});
-}
-clientEvents['play']=function(connection,data){
-	custom=DEFAULT.defaultRessource();
-	custom.objects=game.viewSerializer(game.gameEntities);
-	connection.socket.emit('sync',{"id":connection.entity._id});
-}
-clientEvents['GameReady']=function(connection){
-	id=connection.entity._id
-	connection.socket.emit('sync',{"objects":{id:connection.entity},"more":{"avatar":id,'ligths':{'b':'light1','c':'light2'}}});
-	connection.socket.on('GameEvent', function (data) {
-		try{
-			game.gameRules[data.msg['func']](game.gameEntities[connection.entity._id],data.msg['data'],data.msg['timestamp']);
-		}catch(err){console.log(err)}
-	});
-	connection.ready=true;
-}
+
 /** Start server */
 if (!module.parent) {
   app.listen(port)
